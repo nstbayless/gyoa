@@ -10,7 +10,7 @@
 
 #include <string>
 
-namespace cyoa {
+namespace gyoa {
 namespace ops {
 
 /**synchronizes using git*/
@@ -30,6 +30,6 @@ private:
 };
 
 } /* namespace ops */
-} /* namespace cyoa */
+} /* namespace gyoa */
 
 #endif /* BACKEND_OPS_GITOPS_H_ */

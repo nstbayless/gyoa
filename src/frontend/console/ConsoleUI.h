@@ -14,7 +14,7 @@
 #include "../../backend/model/World.h"
 #include "../../backend/ops/Operation.h"
 
-namespace cyoa {
+namespace gyoa {
 namespace ui {
 
 class ConsoleUI {
@@ -82,6 +82,6 @@ private:
 };
 
 } /* namespace ui */
-} /* namespace cyoa */
+} /* namespace gyoa */
 
 #endif /* FRONTEND_CONSOLE_CONSOLEUI_H_ */

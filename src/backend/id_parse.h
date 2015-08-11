@@ -8,8 +8,8 @@
 #include <sstream>
 
 //parses id of the form int:int
-inline cyoa::model::id_type parse_id(std::string s){
-	cyoa::model::id_type i;
+inline gyoa::model::id_type parse_id(std::string s){
+	gyoa::model::id_type i;
 	char punctuation;
 	std::stringstream ss;
 	ss<<s;
@@ -20,7 +20,7 @@ inline cyoa::model::id_type parse_id(std::string s){
 }
 
 //converts id to string of the form int:int
-inline std::string write_id(cyoa::model::id_type i) {
+inline std::string write_id(gyoa::model::id_type i) {
 	return std::to_string(i.gid)+":" + std::to_string(i.rid);
 }
 

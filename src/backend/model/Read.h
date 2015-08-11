@@ -13,7 +13,7 @@
 
 #include "Room.h"
 
-namespace cyoa {
+namespace gyoa {
 namespace model {
 
 //! retrieves nth option by id from given room, where n is from 1 to 9.
@@ -21,6 +21,6 @@ namespace model {
 const opt_id_t getOption(room_t& room, int n);
 
 } /* namespace model */
-} /* namespace cyoa */
+} /* namespace gyoa */
 
 #endif /* BACKEND_MODEL_READ_H_ */

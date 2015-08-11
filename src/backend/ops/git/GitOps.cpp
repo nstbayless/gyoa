@@ -11,7 +11,7 @@
 #include <string>
 #include <cassert>
 
-namespace cyoa {
+namespace gyoa {
 namespace ops {
 
 GitOps::GitOps() {
@@ -63,4 +63,4 @@ void GitOps::push() {
 }
 
 } /* namespace ops */
-} /* namespace cyoa */
+} /* namespace gyoa */

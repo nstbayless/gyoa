@@ -12,16 +12,16 @@
 
 #include "git/GitOps.h"
 
-namespace cyoa {
+namespace gyoa {
 namespace model {
 struct room_t;
 struct world_t;
 struct id_type;
 struct option_t;
 } /* namespace model */
-} /* namespace cyoa */
+} /* namespace gyoa */
 
-namespace cyoa {
+namespace gyoa {
 namespace ops {
 
 /** operates on model data in backend/model*/
@@ -111,6 +111,6 @@ private:
 };
 
 } /* namespace ops */
-} /* namespace cyoa */
+} /* namespace gyoa */
 
 #endif /* BACKEND_OPS_OPERATION_H_ */

@@ -13,13 +13,13 @@
 
 #include "Room.h"
 
-namespace cyoa {
+namespace gyoa {
 
 namespace model {
 
 //! Model root. contains list of rooms.
 struct world_t {
-	//! name of the cyoa world.
+	//! name of the gyoa world.
 	std::string title;
 
 	//! the next id_type::gid to be assigned on creation of a new room.

@@ -8,7 +8,7 @@
 #include "frontend/console/ConsoleUI.h"
 
 int main() {
-	using namespace cyoa::model;
-	cyoa::ui::ConsoleUI cui;
+	using namespace gyoa::model;
+	gyoa::ui::ConsoleUI cui;
 	cui.start();
 }

@@ -18,7 +18,7 @@
 #include "../model/Room.h"
 #include "../model/World.h"
 
-namespace cyoa {
+namespace gyoa {
 namespace ops {
 
 using rm_id_t=model::id_type;
@@ -148,7 +148,7 @@ void Operation::editOption(rm_id_t rid, opt_id_t oid,
 	loadRoom(rid).edited=true;
 }
 
-void cyoa::ops::Operation::editRoomDeadEnd(rm_id_t id, bool dead_end) {
+void gyoa::ops::Operation::editRoomDeadEnd(rm_id_t id, bool dead_end) {
 	loadRoom(id).dead_end=dead_end;
 
 	//update model-edited information:
@@ -224,4 +224,4 @@ std::string Operation::rm_id_to_filename(rm_id_t id) {
 }
 
 } /* namespace ops */
-} /* namespace cyoa */
+} /* namespace gyoa */

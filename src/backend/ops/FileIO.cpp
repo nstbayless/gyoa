@@ -20,7 +20,7 @@
 #include "../model/Room.h"
 #include "../model/World.h"
 
-using namespace cyoa;
+using namespace gyoa;
 
 FileIO::FileIO() {
 
@@ -106,7 +106,7 @@ model::room_t FileIO::loadRoom(std::string filename) const  {
 	return rm_import;
 }
 
-void cyoa::FileIO::writeWorldToFile(cyoa::model::world_t& world,
+void gyoa::FileIO::writeWorldToFile(gyoa::model::world_t& world,
 		std::string filename) {
 	using namespace rapidxml;
 
@@ -141,7 +141,7 @@ void cyoa::FileIO::writeWorldToFile(cyoa::model::world_t& world,
 	myfile.close();
 }
 
-cyoa::model::world_t cyoa::FileIO::loadWorld(std::string filename) {
+gyoa::model::world_t gyoa::FileIO::loadWorld(std::string filename) {
 	using namespace rapidxml;
 
 	model::world_t wd_import;

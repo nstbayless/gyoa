@@ -10,7 +10,7 @@
 
 #include <string>
 #include <map>
-namespace cyoa {
+namespace gyoa {
 
 namespace model {
 

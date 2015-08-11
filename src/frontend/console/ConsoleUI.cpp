@@ -15,7 +15,7 @@
 #include "../../backend/id_parse.h"
 #include "../../backend/model/Read.h"
 
-namespace cyoa {
+namespace gyoa {
 namespace ui {
 
 ConsoleUI::ConsoleUI() {
@@ -395,4 +395,4 @@ void ConsoleUI::playCurrentRoom() {
 }
 
 } /* namespace ui */
-} /* namespace cyoa */
+} /* namespace gyoa */

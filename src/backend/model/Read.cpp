@@ -7,7 +7,7 @@
 
 #include "Read.h"
 
-namespace cyoa {
+namespace gyoa {
 namespace model {
 
 const opt_id_t getOption(room_t& room, int n) {
@@ -23,4 +23,4 @@ const opt_id_t getOption(room_t& room, int n) {
 }
 
 } /* namespace model */
-} /* namespace cyoa */
+} /* namespace gyoa */

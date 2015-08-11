@@ -21,7 +21,7 @@
 #include "../../backend/model/Room.h"
 #include "ConsoleUI.h"
 
-namespace cyoa {
+namespace gyoa {
 namespace ui {
 
 model::rm_id_t ConsoleUI::inputRoom() {
