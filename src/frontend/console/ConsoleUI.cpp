@@ -132,9 +132,9 @@ void ConsoleUI::editCurrentRoom() {
 	std::string s;
 	while (true){
 		switch (input()) {
-		case 'q': mode=QUIT;						return;
-		case 'p': mode=PLAY; print_room();			return;
-		case 'b': current_room=model.first_room;	continue;
+		case 'q': mode=QUIT;									return;
+		case 'p': mode=PLAY; print_room();						return;
+		case 'b': current_room=model.first_room; print_help();	continue;
 		// print room description:
 		case 'r':
 			print_room();
@@ -230,9 +230,12 @@ void ConsoleUI::editOptions() {
 			if (it>0 && it<=9) {
 				for (auto iter : rm.options) {
 					it-=1;
-					if (it==0)
-					ops.removeOption(id,iter.first);
-					room_edited[id]=true;
+					if (it==0) {
+						ops.removeOption(id,iter.first);
+						room_edited[id]=true;
+						print("\nOption removed. Press [h] for help.");
+						break;
+					}
 				}
 			}
 			break;
@@ -298,7 +301,7 @@ void ConsoleUI::print_help() {
 				"[t]   edit text\n"
 				"[o]   edit options\n"
 				"[d]   toggle dead end\n"
-				"[j]   jump to a room by id"
+				"[j]   jump to a room by id\n"
 				"[s]   save all\n"
 				"[h]   view this screen");
 		if (world_edited||room_edited.size())
