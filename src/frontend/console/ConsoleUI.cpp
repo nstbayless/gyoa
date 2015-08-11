@@ -9,10 +9,13 @@
 
 #include <cassert>
 #include <cctype>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <sstream>
 #include <utility>
+#include <vector>
 
 #include "../../backend/id_parse.h"
 
@@ -48,18 +51,37 @@ void ConsoleUI::start() {
 		mode=EDIT_ROOM;
 	} else if (choice=='p') {
 		mode=PLAY;
+		clear();
+		print_room();
 	} else {
 		mode=META;
 		goto user_failed;
 	}
 
 	//user has fun:
-	while (mode!=QUIT) {
+	while (true) {
 		if (mode==EDIT_ROOM)
 			editCurrentRoom();
 		if (mode==PLAY)
 			playCurrentRoom();
+		if (mode==QUIT){
+			if (world_edited || room_edited.size()) {
+				print(
+						"Note: unsaved changes! Press [s] to save, [x] to confirm quit.");
+				while (true) {
+					switch (input()) {
+					case 's':
+						save_all();
+					case 'x':
+						goto exit;
+					default:
+						break;
+					}
+				}
+			} else break;
+		}
 	}
+	exit:
 	print("Exiting game...");
 }
 
@@ -111,7 +133,7 @@ void ConsoleUI::editCurrentRoom() {
 	while (true){
 		switch (input()) {
 		case 'q': mode=QUIT;						return;
-		case 'p': mode=PLAY;						return;
+		case 'p': mode=PLAY; print_room();			return;
 		case 'b': current_room=model.first_room;	continue;
 		// print room description:
 		case 'r':
@@ -154,6 +176,7 @@ void ConsoleUI::editCurrentRoom() {
 			print_help();
 			editOptions();
 			mode=EDIT_ROOM;
+			print_help();
 			break;
 		default:
 			print("No. Press [h] for help.");
@@ -170,6 +193,7 @@ void ConsoleUI::editOptions() {
 	auto id = current_room;
 	auto& rm = ops.loadRoom(current_room);
 	while (true) {
+		contloop:
 		switch (char c = input()) {
 			case 'q':
 			case 'e': return;
@@ -183,14 +207,16 @@ void ConsoleUI::editOptions() {
 				opt.dst.gid=-1;
 				opt.option_text=s;
 				user_failed:
-				print("[c]reate scenario for option or continue [e]diting?");
+				print("[c]reate scenario for option, [l]ink to existing scenario, or continue [e]diting?");
 				switch(input()) {
 					case 'd':
 					case 'c': current_room=opt.dst=ops.makeRoom();
-					ops.save(id);
-					break;
-					//todo: link room
-					case 'e': print("\nReturned to edit mode. Press [h] for help."); break;
+						room_edited[opt.dst]=true;
+						break;
+					case 'l':
+						opt.dst = inputRoom();
+						break;
+					case 'e': print_help(); break;
 					default: goto user_failed;
 				}
 				ops.addOption(id,opt);
@@ -230,17 +256,21 @@ void ConsoleUI::editOptions() {
 								break;
 							case 'd':
 								current_room=opt.dst=ops.makeRoom();
+								ops.editOption(id,iter.first, opt);
 								room_edited[id]=true;
 								room_edited[opt.dst]=true;
 								print_room();
 								break;
 							case 'l':
-								//todo link room
-							default:
+								ops.editOption(id, iter.first, {inputRoom(),iter.second.option_text});
 								break;
+							default:
+								print("cancelled.");
+								goto contloop;
 						}
 					}
 				}
+				print("Invalid option. Press [h] for help.");
 			} else
 			print("Press [h] for help.");
 		}}
@@ -268,8 +298,11 @@ void ConsoleUI::print_help() {
 				"[t]   edit text\n"
 				"[o]   edit options\n"
 				"[d]   toggle dead end\n"
+				"[j]   jump to a room by id"
 				"[s]   save all\n"
 				"[h]   view this screen");
+		if (world_edited||room_edited.size())
+			print("\nalert: un[s]aved changes.");
 		break;
 	case EDIT_OPTIONS:
 		print("## HELP MENU: Edit Options Mode ##\n"
@@ -292,6 +325,8 @@ void ConsoleUI::print_room() {
 	int opt_n = 1;
 	auto id = current_room;
 	auto& rm = ops.loadRoom(current_room);
+	if (mode==PLAY)
+		clear();
 	print("## " + rm.title + " ##");
 	if (mode != PLAY)
 		print("gid: " + write_id(id));
@@ -299,7 +334,8 @@ void ConsoleUI::print_room() {
 
 	for (auto iter : rm.options) {
 		assert(opt_n < 10);
-		print("[" + std::to_string(opt_n) + "] > " + iter.second.option_text);
+
+		print("[" + std::to_string(opt_n) + ((iter.second.dst.gid==-1)?"]*> ":"] > ") + iter.second.option_text);
 		opt_n++;
 	}
 	if (!rm.options.size()) {
@@ -312,7 +348,8 @@ void ConsoleUI::print_room() {
 			print("\n> This is as far as anyone has written so far. "
 					"You may [b]egin play again, [q]uit, or [e]xtend the story from this "
 					"point on for other players to enjoy.");
-	}
+	} else if (mode==PLAY)
+		print("\nPress [h] for help.\n");
 }
 
 void ConsoleUI::save_all() {
@@ -324,38 +361,88 @@ void ConsoleUI::save_all() {
 		std::string s = ops.save(iter.first);
 		print("saved scenario to " + s);
 	}
-	print("done");
+	if (!world_edited&&room_edited.empty())
+		print ("Nothing to save. Don't forget to commit.");
+	print("Done. Don't forget to commit and push.");
+	world_edited=false;
+	room_edited.clear();
+}
+
+model::rm_id_t ConsoleUI::inputRoom() {
+	ops.fullyLoad();
+	try_again:
+	print("Enter an id, e.g. 3 or 4:32948395, or leave blank to cancel");
+
+	std::string s = inputString();
+	auto f = s.find(':');
+	if (f==std::string::npos&&!s.empty()){
+		//find room with given gid
+		int gid = atoi(s.c_str());
+		std::vector<model::rm_id_t> matches;
+		for (auto iter : model.rooms){
+			if (iter.first.gid==gid)
+				matches.push_back(iter.first);
+		}
+		if (matches.empty()) {
+			print("No matches for gid " + std::to_string(gid) + ":*  of " + std::to_string(model.rooms.size()) + " possible results.");
+			goto try_again;
+		}
+		if (matches.size()==1) {
+			print("Match found: " + write_id(matches[0])+" (\"" + model.rooms[matches[0]].title + "\")");
+			print("Confirm? [y]:");
+			if (input()=='y')
+				return matches[0];
+			goto try_again;
+		}
+		print(std::to_string(matches.size()) + " matches found: \n");
+		for (auto iter : matches) {
+			print(write_id(iter) + " (\"" + model.rooms[iter].title + "\")");
+		}
+		print("\nPlease enter complete a:b id.");
+		goto try_again;
+	}
+
+	if (f!=std::string::npos) {
+		return parse_id(s);
+	}
+
+	print("cancelled or incorrect input. Returning to previous screen.");
+	//default (cancel) value:
+	return {-1,-1};
 }
 
 void ConsoleUI::playCurrentRoom() {
 	assert(mode==PLAY);
 	auto& rm = ops.loadRoom(current_room);
-	print("");
-	print_room();
-	print("\nPress [h] for help.\n");
 
 	user_failed:
 	switch(char c = input()){
-	case 'q': mode=QUIT; 						break;
-	case 'e': mode=EDIT_ROOM; 						break;
-	case 'b': current_room=model.first_room; 	break;
-	case 'r': 									break;
-	case 'h': print_help();						break;
+	case 'q': mode=QUIT; 									break;
+	case 'e': mode=EDIT_ROOM; 								break;
+	case 'b': current_room=model.first_room; print_room(); 	break;
+	case 'r': print_room();									break;
+	case 'h': print_help();									break;
 	default:
 		if (c>='1'&&c<='9') {
 			int choice = c-'0';
 			//select choice-th option:
 			for (auto iter : rm.options) {
 				choice--;
-				if (choice==0)
-					current_room=iter.second.dst;
-				return;
+				if (choice==0) {
+					if (iter.second.dst.gid==-1)//no destination
+						print("This option's scenario has not been written. Press [e] to enter edit mode, "
+								"then [o] to edit options.");
+					else {
+						current_room=iter.second.dst;
+						print_room();
+					}
+					return;
+				}
 			}
-			assert(false);
-		} else
-			//user failed!
-			print("Nope. Press [h] for help, or [r]eread the descriptive text above.");
-			goto user_failed;
+		}
+		//user failed!
+		print("Nope. Press [h] for help, or [r]eread the descriptive text above.");
+		goto user_failed;
 	}
 	return;
 }

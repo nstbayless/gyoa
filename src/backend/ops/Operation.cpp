@@ -48,8 +48,8 @@ model::world_t Operation::loadWorld() {
 		model::world_t world;
 		world.title="untitled world";
 		world.first_room={0,0};
-		world.next_rm_gid=0;
 		world.rooms[{0,0}]=model::room_t();
+		world.next_rm_gid=1;
 		return world;
 	}
 }

@@ -13,6 +13,7 @@
 #include <fstream>
 #include <sstream>
 #include <utility>
+#include <vector>
 
 #include "../error.h"
 #include "../id_parse.h"
@@ -48,16 +49,16 @@ void FileIO::writeRoomToFile(model::room_t rm, std::string fname) const {
 	xml_node<>* body = doc.allocate_node(node_element, "body");
 	body->append_attribute(doc.allocate_attribute("text", rm.body.c_str()));
 	root->append_node(body);
-
+	std::vector<std::pair<std::string,std::string>> aaa;
 	int option = 0;
 	for (auto opt_p : rm.options) {
 		auto opt=opt_p.second;
-		xml_node<>* opt_n = doc.allocate_node(node_element, "option");;
-		std::string dst_a= write_id(opt.dst);
-		std::string id_a = write_id(opt_p.first);
-		opt_n->append_attribute(doc.allocate_attribute("dst", dst_a.c_str()));
+		xml_node<>* opt_n = doc.allocate_node(node_element, "option");
+		auto a = std::pair<std::string,std::string>(write_id(opt.dst),write_id(opt_p.first));
+		aaa.push_back(a);
+		opt_n->append_attribute(doc.allocate_attribute("dst", aaa.back().first.c_str()));
 		opt_n->append_attribute(doc.allocate_attribute("text", opt.option_text.c_str()));
-		opt_n->append_attribute(doc.allocate_attribute("id",id_a.c_str()));
+		opt_n->append_attribute(doc.allocate_attribute("id",aaa.back().second.c_str()));
 		root->append_node(opt_n);
 		option++;
 	}

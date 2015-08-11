@@ -47,8 +47,12 @@ private:
 	//! gets input from user
 	char input();
 
+
 	//! gets string input from user
 	std::string inputString();
+
+	//! gets a rm_id_t from the user, or {-1,-1} if user cancels.
+	model::rm_id_t inputRoom();
 
 	//! allows user to edit model
 	void editCurrentRoom();
