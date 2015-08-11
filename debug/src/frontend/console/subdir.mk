@@ -5,14 +5,17 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
 ../src/frontend/console/ConsoleUI.cpp \
+../src/frontend/console/ConsoleUI_git.cpp \
 ../src/frontend/console/ConsoleUI_io.cpp 
 
 OBJS += \
 ./src/frontend/console/ConsoleUI.o \
+./src/frontend/console/ConsoleUI_git.o \
 ./src/frontend/console/ConsoleUI_io.o 
 
 CPP_DEPS += \
 ./src/frontend/console/ConsoleUI.d \
+./src/frontend/console/ConsoleUI_git.d \
 ./src/frontend/console/ConsoleUI_io.d 
 
 
