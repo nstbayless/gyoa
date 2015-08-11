@@ -14,6 +14,7 @@
 
 #include "../../backend/id_parse.h"
 #include "../../backend/model/Read.h"
+#include "../../backend/ops/git/GitOps.h"
 
 namespace gyoa {
 namespace ui {
