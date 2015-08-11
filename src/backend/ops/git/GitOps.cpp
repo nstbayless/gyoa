@@ -50,7 +50,12 @@ void GitOps::commit(std::string msg) {
 }
 
 void GitOps::init(bool silent) {
-	system(std::string("git init "+repo_dir + ((silent)?" > /dev/null":"")).c_str());
+	system(std::string("git init "+repo_dir + ((silent)?" > /dev/null":"")+";"
+			"cd " + repo_dir + "; "
+			" git config user.name \"gyoa-client\"; "
+			  " git config user.email \"asdf@asdf.com\";"
+			  "cd - > /dev/null"
+			).c_str());
 }
 
 void GitOps::push() {

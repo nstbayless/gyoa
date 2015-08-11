@@ -321,6 +321,7 @@ void ConsoleUI::editGit() {
 			print("Enter upstream repository url, e.g. https://github.com/account/gyoa");
 			s=inputString();
 			print("Upstream URL: " + s);
+			ops.gitOps.init();
 			ops.gitOps.setUpstream(s);
 			print("Upstream repository set to "+ s);
 			print("\nType [h] for help.");
