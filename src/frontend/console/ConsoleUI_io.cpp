@@ -123,42 +123,42 @@ void ConsoleUI::print_help() {
 	clear();
 	switch (mode) {
 	case PLAY:
-		print("## HELP MENU: Play Mode ##\n"
-				"[q]   exit program\n"
-				"[e]   switch to edit mode\n"
-				"[b]   start over\n"
-				"[r]   reread scenario description\n"
-				"[h]   view this screen\n"
-				"[1-9] select option");
-		break;
+			print("## HELP MENU: Play Mode ##\n"
+					"[q]   exit program\n"
+					"[e]   switch to edit mode\n"
+					"[b]   start over\n"
+					"[r]   reread scenario description\n"
+					"[h]   view this screen\n"
+					"[1-9] select option");
+			break;
 	case EDIT_ROOM:
-		print("## HELP MENU: Edit Mode ##\n"
-				"[q]   exit program\n"
-				"[p]   switch to play mode\n"
-				"[b]   edit the opening scenario\n"
-				"[r]   read scenario description\n"
-				"[y]   edit header title\n"
-				"[t]   edit text\n"
-				"[o]   edit options\n"
-				"[d]   toggle dead end\n"
-				"[j]   jump to a scenario by id\n"
-				"[s]   save all\n"
-				"[g]   for synchronization options (git).\n"
-				"[h]   view this screen");
-		print("\nediting scenario "+write_id(current_room) + " (\"" + ops.loadRoom(current_room).title +"\")");
-		if (ops.savePending())
-			print("\nalert: un[s]aved changes.");
-		break;
+			print("## HELP MENU: Edit Mode ##\n"
+					"[q]   exit program\n"
+					"[p]   switch to play mode\n"
+					"[b]   edit the opening scenario\n"
+					"[r]   read scenario description\n"
+					"[y]   edit header title\n"
+					"[t]   edit text\n"
+					"[o]   edit options\n"
+					"[d]   toggle dead end\n"
+					"[j]   jump to a scenario by id\n"
+					"[s]   save all\n"
+					"[g]   for synchronization options (git).\n"
+					"[h]   view this screen");
+			print("\nediting scenario "+write_id(current_room) + " (\"" + ops.loadRoom(current_room).title +"\")");
+			if (ops.savePending())
+				print("\nalert: un[s]aved changes.");
+			break;
 	case EDIT_OPTIONS:
-		print("## HELP MENU: Edit Options Mode ##\n"
-				"[q|e] return to edit mode\n"
-				"[r]   read scenario description\n"
-				"[a]   add option\n"
-				"[x]   remove option\n"
-				"[1-9] edit option\n"
-				"[s]   save all\n"
-				"[h]   view this screen");
-		break;
+			print("## HELP MENU: Edit Options Mode ##\n"
+					"[q|e] return to edit mode\n"
+					"[r]   read scenario description\n"
+					"[a]   add option\n"
+					"[x]   remove option\n"
+					"[1-9] edit option\n"
+					"[s]   save all\n"
+					"[h]   view this screen");
+			break;
 	case EDIT_GIT:
 			print("## HELP MENU: Git Synchronization Mode ##\n"
 					"[q|e] return to edit mode\n"

@@ -94,6 +94,9 @@ rm_id_t Operation::makeRoom() {
 }
 
 void Operation::editRoomTitle(rm_id_t id, std::string title) {
+	//trim input:
+	title.erase(title.find_last_not_of(" \n\r\t")+1);
+
 	loadRoom(id).title=title;
 
 	//update model-edited information:
@@ -101,7 +104,7 @@ void Operation::editRoomTitle(rm_id_t id, std::string title) {
 }
 
 void Operation::editRoomBody(rm_id_t id, std::string body) {
-	//trim body:
+	//trim input:
 	body.erase(body.find_last_not_of(" \n\r\t")+1);
 
 	loadRoom(id).body=body;
@@ -119,6 +122,10 @@ void Operation::addOption(rm_id_t id,
 	for (auto iter : options)
 		if (iter.first.gid>max_opt_gid)
 			max_opt_gid=iter.first.gid;
+
+	//trim input:
+	option.option_text.erase(option.option_text.find_last_not_of(" \n\r\t")+1);
+
 	//create id for option by
 	options[{max_opt_gid+1,random()}]=option;
 

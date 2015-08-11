@@ -19,7 +19,7 @@ public:
 	GitOps();
 	virtual ~GitOps();
 	void setLocalRepoDirectory(std::string);
-	void init();
+	void init(bool silence=true);
 	void setUpstream(std::string upstream);
 	void pull();
 	void addAll();

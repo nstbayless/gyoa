@@ -145,8 +145,16 @@ void ConsoleUI::editCurrentRoom() {
 			print_help();
 			editOptions();
 			mode=EDIT_ROOM;
+			clear();
 			print_help();
 			break;
+		case 'g':
+			mode=EDIT_GIT;
+			print_help();
+			editGit();
+			mode=EDIT_ROOM;
+			clear();
+			print_help();
 		default:
 			print("No. Press [h] for help.");
 			continue;
@@ -314,6 +322,7 @@ void ConsoleUI::editGit() {
 			s=inputString();
 			print("Upstream URL: " + s);
 			ops.gitOps.setUpstream(s);
+			print("Upstream repository set to "+ s);
 			print("\nType [h] for help.");
 			continue;
 		case 'h':
