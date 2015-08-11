@@ -8,10 +8,9 @@
 #ifndef BACKEND_OPS_OPERATION_H_
 #define BACKEND_OPS_OPERATION_H_
 
-#include <map>
 #include <string>
 
-#include "../model/Room.h"
+#include "git/GitOps.h"
 
 namespace cyoa {
 namespace model {
@@ -29,6 +28,8 @@ namespace ops {
 class Operation {
 	using rm_id_t=model::id_type;
 	using opt_id_t=model::id_type;
+public:
+	GitOps gitOps;
 public:
 	Operation();
 	~Operation(){}

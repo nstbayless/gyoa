@@ -25,7 +25,7 @@ C_UPPER_DEPS :=
 SUBDIRS := \
 src/frontend/console \
 src \
+src/backend/ops/git \
 src/backend/ops \
 src/backend/model \
-src/backend/git \
 

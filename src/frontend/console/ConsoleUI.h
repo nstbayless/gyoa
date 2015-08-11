@@ -56,6 +56,9 @@ private:
 	//! allows user to edit options of current scenario
 	void editOptions();
 
+	//! allows user to synchronize data to external repository.
+	void editGit();
+
 	//! allows user to play game.
 	void playCurrentRoom();
 private:
@@ -66,7 +69,7 @@ private:
 	ops::Operation ops;
 
 	enum {
-		EDIT_ROOM, EDIT_OPTIONS, PLAY, META, QUIT
+		EDIT_ROOM, EDIT_OPTIONS, EDIT_GIT, PLAY, META, QUIT
 	} mode = META;
 
 	model::rm_id_t current_room;

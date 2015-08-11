@@ -282,6 +282,50 @@ void ConsoleUI::editOptions() {
 	}
 }
 
+
+void ConsoleUI::editGit() {
+	assert(mode==EDIT_GIT);
+	print_help();
+	std::string s;
+	while (true) {
+		switch (input()) {
+		case 'q':
+		case 'e': mode=EDIT_ROOM; return;
+		case 's':
+			print(ops.saveAll()); continue;
+		case 'm': //pull
+			ops.gitOps.init();
+			ops.gitOps.pull();
+			print("\nType [h] for help.");
+			continue;
+		case 'p': //push
+			print("Enter a commit message, or leave blank for default");
+			s=inputString();
+			if (s.size()==0)
+				s="Default commit message.";
+			ops.gitOps.init();
+			ops.gitOps.addAll();
+			ops.gitOps.commit(s);
+			ops.gitOps.push();
+			print("\nType [h] for help.");
+			continue;
+		case 'u': //set upstream
+			print("Enter upstream repository url, e.g. https://github.com/account/gyoa");
+			s=inputString();
+			print("Upstream URL: " + s);
+			ops.gitOps.setUpstream(s);
+			print("\nType [h] for help.");
+			continue;
+		case 'h':
+			print_help();
+			continue;
+		default:
+			print("No. Press [h] for help.");
+			continue;
+		}
+	}
+}
+
 void ConsoleUI::playCurrentRoom() {
 	user_failed:
 	assert(mode==PLAY);

@@ -27,6 +27,7 @@ using opt_id_t=model::id_type;
 Operation::Operation() {
 	using namespace std;
 	srand(time(nullptr));
+	gitOps.setLocalRepoDirectory(data_dir);
 }
 
 void Operation::setModel(model::world_t& model) {
@@ -35,6 +36,7 @@ void Operation::setModel(model::world_t& model) {
 
 void Operation::setDataDirectory(std::string dir) {
 	this->data_dir=dir;
+	gitOps.setLocalRepoDirectory(data_dir);
 }
 
 model::world_t Operation::loadWorld() {

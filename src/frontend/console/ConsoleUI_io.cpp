@@ -143,6 +143,7 @@ void ConsoleUI::print_help() {
 				"[d]   toggle dead end\n"
 				"[j]   jump to a scenario by id\n"
 				"[s]   save all\n"
+				"[g]   for synchronization options (git).\n"
 				"[h]   view this screen");
 		print("\nediting scenario "+write_id(current_room) + " (\"" + ops.loadRoom(current_room).title +"\")");
 		if (ops.savePending())
@@ -150,7 +151,7 @@ void ConsoleUI::print_help() {
 		break;
 	case EDIT_OPTIONS:
 		print("## HELP MENU: Edit Options Mode ##\n"
-				"[q|e] return to previous screen\n"
+				"[q|e] return to edit mode\n"
 				"[r]   read scenario description\n"
 				"[a]   add option\n"
 				"[x]   remove option\n"
@@ -158,6 +159,15 @@ void ConsoleUI::print_help() {
 				"[s]   save all\n"
 				"[h]   view this screen");
 		break;
+	case EDIT_GIT:
+			print("## HELP MENU: Git Synchronization Mode ##\n"
+					"[q|e] return to edit mode\n"
+					"[s]   save all changes (doesn't synchronize)\n"
+					"[m]   download/merge from repository\n"
+					"[p]   upload to repository (git add + commit + push)\n"
+					"[u]   set upstream repository\n"
+					"[h]   view this screen");
+			break;
 	default:
 		print("No help available.");
 		break;
