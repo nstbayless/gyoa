@@ -5,6 +5,7 @@
 #include <string>
 
 #include "model/Room.h"
+#include <sstream>
 
 //parses id of the form int:int
 inline cyoa::model::id_type parse_id(std::string s){

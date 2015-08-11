@@ -51,10 +51,10 @@ struct option_t {
 
 struct room_t {
 	//! (fluff) header for room
-	std::string title="untitled room";
+	std::string title="untitled scenario";
 
 	//! (fluff) body text for room
-	std::string body="blah blah blah";
+	std::string body="This is the body text, please edit it. ([t] in edit mode.)";
 
 	//! list of outedges from this room. (Invariant: empty if dead_end is true)
 	std::map<opt_id_t,option_t> options;
@@ -64,6 +64,9 @@ struct room_t {
 
 	//! if false, room will be loaded when accessed
 	bool loaded=true;
+
+	//! true if room has been edited since last save
+	bool edited=false;
 };
 
 }

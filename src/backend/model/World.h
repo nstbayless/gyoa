@@ -30,6 +30,9 @@ struct world_t {
 
 	//! list of rooms, mapped from id_type to room_t.
 	std::map<id_type,room_t> rooms;
+
+	//! true if world_t information has been edited since last save
+	bool edited=false;
 };
 
 }

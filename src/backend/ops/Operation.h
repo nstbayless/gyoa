@@ -8,8 +8,10 @@
 #ifndef BACKEND_OPS_OPERATION_H_
 #define BACKEND_OPS_OPERATION_H_
 
+#include <map>
 #include <string>
-#include <sstream>
+
+#include "../model/Room.h"
 
 namespace cyoa {
 namespace model {
@@ -77,10 +79,17 @@ public:
 	void editOption(rm_id_t, opt_id_t, model::option_t);
 
 	//! saves room to file. Returns name of file saved to.
-	std::string save(rm_id_t);
+	std::string saveRoom(rm_id_t);
 
 	//! saves loaded world to file.
 	void saveWorld();
+
+	//! saves all edited rooms and world.txt if applicable.
+	//! returns a string describing save result in human-readable form
+	std::string saveAll();
+
+	//! returns true if model information has been edited since last save
+	bool savePending();
 private:
 	//! throws exception if model not loaded.
 	void checkModel();

@@ -5,8 +5,10 @@
  *      Author: n
  */
 
+#include <cassert>
 #include <cctype>
 #include <cstdlib>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -14,7 +16,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <cassert>
 
 #include "../../backend/id_parse.h"
 #include "../../backend/model/Room.h"
@@ -31,7 +32,7 @@ model::rm_id_t ConsoleUI::inputRoom() {
 	std::string s = inputString();
 	auto f = s.find(':');
 	if (f==std::string::npos&&!s.empty()){
-		//find room with given gid
+		//find room with given gidr
 		int gid = atoi(s.c_str());
 		std::vector<model::rm_id_t> matches;
 		for (auto iter : model.rooms){
@@ -45,8 +46,10 @@ model::rm_id_t ConsoleUI::inputRoom() {
 		if (matches.size()==1) {
 			print("Match found: " + write_id(matches[0])+" (\"" + model.rooms[matches[0]].title + "\")");
 			print("Confirm? [y]:");
-			if (input()=='y')
+			if (input()=='y') {
+				print("selected id " + write_id(matches[0]));
 				return matches[0];
+			}
 			goto try_again;
 		}
 		print(std::to_string(matches.size()) + " matches found: \n");
@@ -58,7 +61,9 @@ model::rm_id_t ConsoleUI::inputRoom() {
 	}
 
 	if (f!=std::string::npos) {
-		return parse_id(s);
+		auto id = parse_id(s);
+		print("selected id " + write_id(id));
+		return id;
 	}
 
 	print("cancelled or incorrect input. Returning to previous screen.");
@@ -86,7 +91,7 @@ std::string ConsoleUI::inputString() {
 
 std::string ConsoleUI::edit_text(std::string original) {
 	using namespace std;
-	string file = "/tmp/cyoa_edit.tmp";
+	string file = "/tmp/gyoa_edit.tmp";
 	ofstream out;
 	out.open (file);
 	out << original;
@@ -98,6 +103,9 @@ std::string ConsoleUI::edit_text(std::string original) {
 	std::ifstream in(file);
 	std::stringstream buffer;
 	buffer << in.rdbuf();
+
+	std::remove(file.c_str());
+
 	return buffer.str();
 }
 
@@ -131,7 +139,7 @@ void ConsoleUI::print_help() {
 				"[s]   save all\n"
 				"[h]   view this screen");
 		print("\nediting scenario "+write_id(current_room) + " (\"" + ops.loadRoom(current_room).title +"\")");
-		if (world_edited||room_edited.size())
+		if (ops.savePending())
 			print("\nalert: un[s]aved changes.");
 		break;
 	case EDIT_OPTIONS:
