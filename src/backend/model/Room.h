@@ -51,11 +51,14 @@ struct room_t {
 	//! (fluff) body text for room
 	std::string body="blah blah blah";
 
-	//list of outedges from this room. (Invariant: empty if dead_end is true)
+	//! list of outedges from this room. (Invariant: empty if dead_end is true)
 	std::map<opt_id_t,option_t> options;
 
-	//this room marks an "end" for the game.
+	//! this room marks an "end" for the game.
 	bool dead_end=false;
+
+	//! if false, room will be loaded when accessed
+	bool loaded=true;
 };
 
 }

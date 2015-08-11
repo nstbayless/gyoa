@@ -63,6 +63,10 @@ void FileIO::writeRoomToFile(model::room_t rm, std::string fname) const {
 		option++;
 	}
 
+	xml_node<>* dead_end = doc.allocate_node(node_element, "dead_end");
+	if (rm.dead_end)
+		root->append_node(dead_end);
+
 	std::ofstream myfile;
 	myfile.open(fname);
 	myfile << doc;
@@ -84,6 +88,7 @@ model::room_t FileIO::loadRoom(std::string filename) const  {
 	xml_node<>* nd_rm = doc.first_node("room");
 	rm_import.title = nd_rm->first_node("title")->first_attribute("text")->value();
 	rm_import.body = nd_rm->first_node("body")->first_attribute("text")->value();
+	rm_import.dead_end = !!nd_rm->first_node("dead_end");
 	bool tr1 = true;
 	xml_node<>* nd_opt = nd_rm->first_node("option");
 	while (true) {
@@ -112,7 +117,7 @@ void cyoa::FileIO::writeWorldToFile(cyoa::model::world_t& world,
 	doc.append_node(decl);
 
 	xml_node<>* root = doc.allocate_node(node_element, "world");
-	root->append_attribute(doc.allocate_attribute("version", "0.1"));
+	root->append_attribute(doc.allocate_attribute("version", "0.2"));
 	std::string id = write_id(world.first_room);
 	root->append_attribute(doc.allocate_attribute("start_rm_id", id.c_str()));
 	std::string gid = std::to_string(world.next_rm_gid);
@@ -123,6 +128,13 @@ void cyoa::FileIO::writeWorldToFile(cyoa::model::world_t& world,
 	title->append_attribute(doc.allocate_attribute("text", world.title.c_str()));
 	root->append_node(title);
 
+	std::vector<std::string> aa;
+	for (auto iter : world.rooms){
+		xml_node<>* rm = doc.allocate_node(node_element, "rm");
+		aa.push_back(write_id(iter.first));
+		rm->append_attribute(doc.allocate_attribute("id", aa.back().c_str()));
+		root->append_node(rm);
+	}
 	std::ofstream myfile;
 	myfile.open(filename);
 	myfile << doc;
@@ -145,6 +157,13 @@ cyoa::model::world_t cyoa::FileIO::loadWorld(std::string filename) {
 	wd_import.first_room=parse_id(nd_wd->first_attribute("start_rm_id")->value());
 	wd_import.next_rm_gid=atoi(nd_wd->first_attribute("next_rm_gid")->value());
 	wd_import.title = nd_wd->first_node("title")->first_attribute("text")->value();
-
+	auto node_rm = nd_wd->first_node("rm");
+	while (node_rm) {
+		model::room_t fake;
+		fake.loaded=false;
+		auto id = parse_id(node_rm->first_attribute("id")->value());
+		wd_import.rooms[id]=fake;
+		node_rm=node_rm->next_sibling("rm");
+	}
 	return wd_import;
 }

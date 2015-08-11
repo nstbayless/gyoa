@@ -83,6 +83,7 @@ void ConsoleUI::start() {
 	}
 	exit:
 	print("Exiting game...");
+	clear();
 }
 
 void ConsoleUI::print(std::string message) {
@@ -135,6 +136,14 @@ void ConsoleUI::editCurrentRoom() {
 		case 'q': mode=QUIT;									return;
 		case 'p': mode=PLAY; print_room();						return;
 		case 'b': current_room=model.first_room; print_help();	continue;
+		case 'j': id=inputRoom();
+			if (id.gid!=-1) {
+				//if input, jump to room
+				current_room=id;
+				print_help();
+			}
+			id = current_room;
+			break;
 		// print room description:
 		case 'r':
 			print_room();
@@ -212,6 +221,7 @@ void ConsoleUI::editOptions() {
 					case 'd':
 					case 'c': current_room=opt.dst=ops.makeRoom();
 						room_edited[opt.dst]=true;
+						world_edited=true;
 						break;
 					case 'l':
 						opt.dst = inputRoom();
@@ -262,6 +272,7 @@ void ConsoleUI::editOptions() {
 								ops.editOption(id,iter.first, opt);
 								room_edited[id]=true;
 								room_edited[opt.dst]=true;
+								world_edited=true;
 								print_room();
 								break;
 							case 'l':
@@ -304,6 +315,7 @@ void ConsoleUI::print_help() {
 				"[j]   jump to a room by id\n"
 				"[s]   save all\n"
 				"[h]   view this screen");
+		print("\nediting room "+write_id(current_room) + " (\"" + ops.loadRoom(current_room).title +"\")");
 		if (world_edited||room_edited.size())
 			print("\nalert: un[s]aved changes.");
 		break;

@@ -55,7 +55,7 @@ model::world_t Operation::loadWorld() {
 }
 
 void Operation::fullyLoad() {
-	// todo
+
 }
 
 model::room_t& Operation::loadRoom(rm_id_t id) {
@@ -63,7 +63,8 @@ model::room_t& Operation::loadRoom(rm_id_t id) {
 	load_result=false;
 	//check if room already loaded in model:
 	if (model->rooms.count(id))
-		return model->rooms[id];
+		if (model->rooms[id].loaded)
+			return model->rooms[id];
 	load_result=true;
 	//not found in model: load room from disk
 	FileIO io;

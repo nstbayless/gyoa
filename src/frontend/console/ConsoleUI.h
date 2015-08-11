@@ -47,7 +47,6 @@ private:
 	//! gets input from user
 	char input();
 
-
 	//! gets string input from user
 	std::string inputString();
 
