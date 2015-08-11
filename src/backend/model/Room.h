@@ -54,7 +54,10 @@ struct room_t {
 	std::string title="untitled scenario";
 
 	//! (fluff) body text for room
-	std::string body="This is the body text, please edit it. ([t] in edit mode.)";
+	std::string body=
+			"This is the body text, but nobody has written anything yet.\n"
+			"If you'd like to edit it, press [t] from edit mode. "
+			"If you're not in edit mode, press [e] to enter edit mode.";
 
 	//! list of outedges from this room. (Invariant: empty if dead_end is true)
 	std::map<opt_id_t,option_t> options;
