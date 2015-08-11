@@ -292,16 +292,39 @@ void ConsoleUI::playCurrentRoom() {
 	case 'b': current_room=model.first_room; print_room(); 	break;
 	case 'r': print(""); print_room();						break;
 	case 'h': print_help();									break;
-	default:
+		default:
 		if (c>='1'&&c<='9') {
 			int choice = c-'0';
 			//select choice-th option:
 			for (auto iter : rm.options) {
 				choice--;
 				if (choice==0) {
-					if (iter.second.dst.gid==-1)//no destination for given option
-						print("This option's scenario has not been written. Press [e] to enter edit mode, "
-								"then [o] to edit options.");
+					if (iter.second.dst.gid==-1) { //no destination for given option
+						print("This option's scenario has not been written.\n"
+								"You may [c]reate a scenario for the option, "
+								"[r]eturn to pick another option, "
+								"[e]dit the current scenario, "
+								"or [b]egin again from the start.");
+						model::option_t opt_edit = iter.second;
+						switch (input()) {
+							case 'd': //alternative for 'c'
+							case 'c':
+									opt_edit.dst=ops.makeRoom();
+									ops.editOption(current_room,iter.first,opt_edit);
+									current_room=opt_edit.dst;
+									mode=EDIT_ROOM;
+										break;
+							case 'r':
+									print_room();
+										return;
+							case 'e':
+									mode=EDIT_ROOM; return;
+							case 'b':
+									current_room=model.first_room; print_room(); return;
+							default:
+									print_room();
+						}
+					}
 					else {
 						current_room=iter.second.dst;
 						print_room();
