@@ -24,7 +24,11 @@ void ConsoleUI::editGit() {
 			print(ops.saveAll()); continue;
 		case 'm': //pull
 			ops.gitOps.init();
+			ops.saveAll();
+			ops.gitOps.addAll();
+			ops.gitOps.commit("pre-pull commit");
 			ops.gitOps.pull();
+			ops.reload();
 			print("\nType [h] for help.");
 			continue;
 		case 'p': //push
@@ -32,10 +36,13 @@ void ConsoleUI::editGit() {
 			s=inputString();
 			if (s.size()==0)
 				s="Default commit message.";
+			ops.saveAll();
 			ops.gitOps.init();
 			ops.gitOps.addAll();
 			ops.gitOps.commit(s);
+			ops.gitOps.pull();
 			ops.gitOps.push();
+			ops.reload();
 			print("\nType [h] for help.");
 			continue;
 		case 'u': //set upstream

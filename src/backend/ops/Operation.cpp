@@ -11,6 +11,7 @@
 #include <ctime>
 #include <map>
 #include <utility>
+#include <cassert>
 
 #include "../error.h"
 #include "../ops/FileIO.h"
@@ -59,7 +60,7 @@ model::world_t Operation::loadWorld() {
 }
 
 void Operation::fullyLoad() {
-
+	//todo
 }
 
 model::room_t& Operation::loadRoom(rm_id_t id) {
@@ -221,6 +222,12 @@ bool Operation::savePending() {
 
 std::string Operation::rm_id_to_filename(rm_id_t id) {
 	return data_dir+"rm_"+write_id(id)+".txt";
+}
+
+void gyoa::ops::Operation::reload() {
+	assert(!savePending());
+	*model=loadWorld();
+
 }
 
 } /* namespace ops */

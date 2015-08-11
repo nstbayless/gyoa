@@ -42,10 +42,10 @@ private:
 	std::string edit_text(std::string);
 
 	//! gets input from user
-	char input();
+	char input(bool prompt=true);
 
 	//! gets string input from user
-	std::string inputString();
+	std::string inputString(bool prompt=true);
 
 	//! gets a rm_id_t from the user, or {-1,-1} if user cancels.
 	model::rm_id_t inputRoom();

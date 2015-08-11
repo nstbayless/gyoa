@@ -23,7 +23,6 @@ ConsoleUI::ConsoleUI() {
 }
 
 ConsoleUI::~ConsoleUI() {
-
 }
 
 void ConsoleUI::start() {
@@ -157,7 +156,6 @@ void ConsoleUI::editCurrentRoom() {
 			clear();
 			print_help();
 		default:
-			print("No. Press [h] for help.");
 			continue;
 		}
 	}
@@ -209,7 +207,7 @@ void ConsoleUI::editOptions() {
 								//update opt.dst iff input.gid!=-1 (indicating no input entry)
 								input_id = inputRoom();
 								if (input_id.gid==-1) {
-									print("\nCancelled operation. Press [h] for help.");
+									print("\nCancelled operation.");
 									break;
 								} else
 									opt.dst=input_id;
@@ -220,9 +218,8 @@ void ConsoleUI::editOptions() {
 						//option defined to user's tastes; add to room:
 						ops.addOption(id,opt);
 						print_help();
-						print("\nPress [h] for help.");
 					} else
-						print("\nCancelled. Press [h] for help.");
+						print("\nCancelled.");
 					break;
 
 			//remove an existing option:
@@ -238,7 +235,7 @@ void ConsoleUI::editOptions() {
 						}
 						//valid option input:
 						ops.removeOption(id,input_id);
-						print("\nOption removed. Press [h] for help.");
+						print("\nOption removed.");
 						break;
 					}
 					break;
@@ -276,16 +273,15 @@ void ConsoleUI::editOptions() {
 								return;
 							case 'l':
 								ops.editOption(id, input_id, {inputRoom(), opt_input.option_text});
-								print("\noption edited. Still editing room " + write_id(id) + "(\"" + rm.title + "\"). Press [h] for help.\n");
+								print("\noption edited. Still editing room " + write_id(id) + "(\"" + rm.title + "\").\n");
 								continue;
 							default:
 								print("\nCancelled.");
 								continue;
 						}
-						print("\nInvalid option number. Press [h] for help.");
+						print("\nInvalid option number.");
 						break;
 					}
-					print("\nPress [h] for help.");
 					break;
 		}
 	}
@@ -343,7 +339,7 @@ void ConsoleUI::playCurrentRoom() {
 			}
 		}
 		//user failed!
-		print("Nope. Press [h] for help, or [r]eread the descriptive text above.");
+		print("Nope. Press [h] for help, or [r]eread the descriptive text above.\n");
 		goto user_failed;
 	}
 	return;

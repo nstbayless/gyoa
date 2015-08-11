@@ -57,6 +57,10 @@ public:
 	//! because file not found or if already loaded.
 	bool loadResult();
 
+	//! reloads all files
+	//! should not be called if saved changes are pending
+	void reload();
+
 	//! creates a room, incrementing world_t::next_gid and generating random rid.
 	//! room is added to model.
 	rm_id_t makeRoom();

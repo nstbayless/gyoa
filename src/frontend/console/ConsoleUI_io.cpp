@@ -25,7 +25,6 @@ namespace gyoa {
 namespace ui {
 
 model::rm_id_t ConsoleUI::inputRoom() {
-	ops.fullyLoad();
 	try_again:
 	print("Enter an id, e.g. 3 or 4:32948395, or leave blank to cancel");
 
@@ -81,15 +80,20 @@ void ConsoleUI::print(std::string message) {
 	std::cout<<message<<"\n";
 }
 
-char ConsoleUI::input() {
-	std::string s = inputString();
+char ConsoleUI::input(bool prompt) {
+	if (prompt)
+		std::cout<<("enter command. Press [h] for help\n> ");
+	std::cout.flush();
+	std::string s = inputString(false);
 	if (!s.length())
 		return ' ';
 	return tolower(s[0]);
 }
 
-std::string ConsoleUI::inputString() {
+std::string ConsoleUI::inputString(bool prompt) {
 	using namespace std;
+	if (prompt)
+		print("input text.\n>>>>>");
 	std::string s;
 	getline(cin,s);
 	return s;
@@ -163,8 +167,8 @@ void ConsoleUI::print_help() {
 			print("## HELP MENU: Git Synchronization Mode ##\n"
 					"[q|e] return to edit mode\n"
 					"[s]   save all changes (doesn't synchronize)\n"
-					"[m]   download/merge from repository\n"
-					"[p]   upload to repository (git add + commit + push)\n"
+					"[m]   downloadnew content from repository\n"
+					"[p]   upload to repository + download new content (git add + commit + pull + push)\n"
 					"[u]   set upstream repository\n"
 					"[h]   view this screen");
 			break;
