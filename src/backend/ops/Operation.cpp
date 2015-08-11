@@ -95,11 +95,13 @@ void Operation::editRoomBody(rm_id_t id, std::string body) {
 void Operation::addOption(rm_id_t id,
 		model::option_t option) {
 	auto& options = loadRoom(id).options;
-	//add option with gid = existing gid + 1.
+	//add option with gid = highest gid + 1.
 	unsigned int max_opt_gid=0;
+	//find highest gid
 	for (auto iter : options)
 		if (iter.first.gid>max_opt_gid)
-		max_opt_gid=iter.first.gid;
+			max_opt_gid=iter.first.gid;
+	//create id for option by
 	options[{max_opt_gid+1,random()}]=option;
 }
 

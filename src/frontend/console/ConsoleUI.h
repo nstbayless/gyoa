@@ -62,7 +62,7 @@ private:
 	//! allows user to play game.
 	void playCurrentRoom();
 private:
-	//! edits model
+	//! model stores information about all rooms
 	model::world_t model;
 
 	//! modifies model
@@ -73,10 +73,15 @@ private:
 	} mode = META;
 
 	model::rm_id_t current_room;
+
+	//! stores all rooms that have been edited and therefore need to be saved
 	std::map<model::rm_id_t,bool> room_edited;
+
+	//! stores whether the world file needs to be saved
 	bool world_edited=false;
 
 	struct {
+		//todo: allow user to edit
 		std::string text_editor="nano";
 	} usr_prefs;
 

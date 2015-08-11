@@ -14,6 +14,11 @@ namespace cyoa {
 
 namespace model {
 
+//! stores an id for a room_t in a world_t or an option_t in a room_t
+//! comprises an integer that increments for each id, and and a randomly-
+//! generated integer to preclude collisions when committing to git.
+//!
+//! a gid of -1 is reserved for default return values/null id
 struct id_type {
 	// integer (increments global counter on room creation)
 	unsigned int gid;
