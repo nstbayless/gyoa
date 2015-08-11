@@ -99,6 +99,9 @@ void Operation::editRoomTitle(rm_id_t id, std::string title) {
 }
 
 void Operation::editRoomBody(rm_id_t id, std::string body) {
+	//trim body:
+	body.erase(body.find_last_not_of(" \n\r\t")+1);
+
 	loadRoom(id).body=body;
 
 	//update model-edited information:
@@ -135,6 +138,14 @@ void Operation::editOption(rm_id_t rid, opt_id_t oid,
 	//update model-edited information:
 	loadRoom(rid).edited=true;
 }
+
+void cyoa::ops::Operation::editRoomDeadEnd(rm_id_t id, bool dead_end) {
+	loadRoom(id).dead_end=dead_end;
+
+	//update model-edited information:
+	loadRoom(id).edited=true;
+}
+
 
 std::string Operation::saveRoom(rm_id_t id) {
 	checkModel();
@@ -205,7 +216,3 @@ std::string Operation::rm_id_to_filename(rm_id_t id) {
 
 } /* namespace ops */
 } /* namespace cyoa */
-
-void cyoa::ops::Operation::editRoomDeadEnd(rm_id_t id, bool dead_end) {
-	loadRoom(id).dead_end=dead_end;
-}

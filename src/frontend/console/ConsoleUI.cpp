@@ -70,6 +70,7 @@ void ConsoleUI::start() {
 					case 'x':
 						goto exit;
 					default:
+						print("[s]ave or e[x]it");
 						break;
 					}
 				}
@@ -113,7 +114,7 @@ void ConsoleUI::editCurrentRoom() {
 				ops.editRoomTitle(id,s);
 			print("\n ## " + rm.title + " ##\n\n");
 			if (s.length()) {
-				print("Title edited. (Don't forget to [s]ave.)\n");
+				print("Title edited. (Don't forget to [s]ave.) Press [r] to review.\n");
 			}
 			break;
 		case 't':
@@ -121,12 +122,17 @@ void ConsoleUI::editCurrentRoom() {
 			if (s.length()) {
 				ops.editRoomBody(id,s);
 				//todo: compare to see if edited at all.
-				print("body text edited. (Don't forget to [s]ave.)\n");
+				print("body text edited. (Don't forget to [s]ave.). Press [r] to review.\n");
 			}
 			break;
 		case 'd':
+			if (rm.options.size()) {
+				print("There are options available.\n"
+						"Please remove all options with [o] then [x] before marking this as a dead end.");
+				break;
+			}
 			ops.editRoomDeadEnd(id,!rm.dead_end);
-			print("Dead End: " + (rm.dead_end) ? "Enabled" : "Disabled. (Don't forget to [s]ave.)\n");
+			print("Dead End: " + std::string(((rm.dead_end) ? "Enabled" : "Disabled")) + ". (Don't forget to [s]ave.)\n");
 			break;
 		case 's':
 			print(ops.saveAll());
@@ -168,7 +174,7 @@ void ConsoleUI::editOptions() {
 		switch (char c = input()) {
 			case 'q':
 			case 'e': return;
-			case 'r': print_room(); break;
+			case 'r': print(""); print_room(); break;
 			case 's': print(ops.saveAll());
 					break;
 			case 'h': print_help(); break;
@@ -204,8 +210,7 @@ void ConsoleUI::editOptions() {
 
 						//option defined to user's tastes; add to room:
 						ops.addOption(id,opt);
-
-						print_room();
+						print_help();
 						print("\nPress [h] for help.");
 					} else
 						print("\nCancelled. Press [h] for help.");
@@ -250,23 +255,28 @@ void ConsoleUI::editOptions() {
 						switch(input()) {
 							case 't':
 								opt.dst=opt_input.dst;
-								opt.option_text=opt_input.option_text;
+								opt.option_text=edit_text(opt_input.option_text);
+								print("Text edited. Don't forget to [s]ave. Press [r] to review.\n");
 								ops.editOption(id, input_id, opt);
 								continue;
 							case 'd':
 								current_room=opt.dst=ops.makeRoom();
 								ops.editOption(id, input_id, opt);
-								print_room();
-								continue;
+								mode=EDIT_ROOM;
+								print_help();
+								return;
 							case 'l':
 								ops.editOption(id, input_id, {inputRoom(), opt_input.option_text});
+								print("\noption edited. Still editing room " + write_id(id) + "(\"" + rm.title + "\"). Press [h] for help.\n");
 								continue;
 							default:
 								print("\nCancelled.");
 								continue;
 						}
+						print("\nInvalid option number. Press [h] for help.");
+						break;
 					}
-					print("Invalid option number. Press [h] for help.");
+					print("\nPress [h] for help.");
 					break;
 		}
 	}
@@ -280,7 +290,7 @@ void ConsoleUI::playCurrentRoom() {
 	case 'q': mode=QUIT; 									break;
 	case 'e': mode=EDIT_ROOM; 								break;
 	case 'b': current_room=model.first_room; print_room(); 	break;
-	case 'r': print_room();									break;
+	case 'r': print(""); print_room();						break;
 	case 'h': print_help();									break;
 	default:
 		if (c>='1'&&c<='9') {

@@ -62,8 +62,14 @@ model::rm_id_t ConsoleUI::inputRoom() {
 
 	if (f!=std::string::npos) {
 		auto id = parse_id(s);
-		print("selected id " + write_id(id));
-		return id;
+		if (model.rooms.count(id)) {
+			print("selected id " + write_id(id));
+			return id;
+		}
+		else {
+			print("Invalid ID.");
+			goto try_again;
+		}
 	}
 
 	print("cancelled or incorrect input. Returning to previous screen.");
