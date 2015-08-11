@@ -53,9 +53,11 @@ void FileIO::writeRoomToFile(model::room_t rm, std::string fname) const {
 	for (auto opt_p : rm.options) {
 		auto opt=opt_p.second;
 		xml_node<>* opt_n = doc.allocate_node(node_element, "option");;
-		opt_n->append_attribute(doc.allocate_attribute("dst", write_id(opt.dst).c_str()));
+		std::string dst_a= write_id(opt.dst);
+		std::string id_a = write_id(opt_p.first);
+		opt_n->append_attribute(doc.allocate_attribute("dst", dst_a.c_str()));
 		opt_n->append_attribute(doc.allocate_attribute("text", opt.option_text.c_str()));
-		opt_n->append_attribute(doc.allocate_attribute("id",write_id(opt_p.first).c_str()));
+		opt_n->append_attribute(doc.allocate_attribute("id",id_a.c_str()));
 		root->append_node(opt_n);
 		option++;
 	}
@@ -112,7 +114,8 @@ void cyoa::FileIO::writeWorldToFile(cyoa::model::world_t& world,
 	root->append_attribute(doc.allocate_attribute("version", "0.1"));
 	std::string id = write_id(world.first_room);
 	root->append_attribute(doc.allocate_attribute("start_rm_id", id.c_str()));
-	root->append_attribute(doc.allocate_attribute("next_rm_gid", std::to_string(world.next_rm_gid).c_str()));
+	std::string gid = std::to_string(world.next_rm_gid);
+	root->append_attribute(doc.allocate_attribute("next_rm_gid", gid.c_str()));
 	doc.append_node(root);
 
 	xml_node<>* title = doc.allocate_node(node_element, "title");

@@ -49,6 +49,7 @@ model::world_t Operation::loadWorld() {
 		world.title="untitled world";
 		world.first_room={0,0};
 		world.next_rm_gid=0;
+		world.rooms[{0,0}]=model::room_t();
 		return world;
 	}
 }
@@ -92,7 +93,7 @@ void Operation::editRoomBody(rm_id_t id, std::string body) {
 
 void Operation::addOption(rm_id_t id,
 		model::option_t option) {
-	auto options = loadRoom(id).options;
+	auto& options = loadRoom(id).options;
 	//add option with gid = existing gid + 1.
 	unsigned int max_opt_gid=0;
 	for (auto iter : options)

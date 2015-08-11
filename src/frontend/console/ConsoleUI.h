@@ -31,6 +31,15 @@ private:
 	//! prints help command to user
 	void print_help();
 
+	//! prints the current room.
+	void print_room();
+
+	//! saves all edited information.
+	void save_all();
+
+	//! clears console
+	void clear();
+
 	//! allows user to edit text by a system call to nano.
 	//! input: original text. output: new text.
 	std::string edit_text(std::string);
@@ -44,6 +53,9 @@ private:
 	//! allows user to edit model
 	void editCurrentRoom();
 
+	//! allows user to edit options of current scenario
+	void editOptions();
+
 	//! allows user to play game.
 	void playCurrentRoom();
 private:
@@ -54,10 +66,12 @@ private:
 	ops::Operation ops;
 
 	enum {
-		EDIT, PLAY, META, QUIT
+		EDIT_ROOM, EDIT_OPTIONS, PLAY, META, QUIT
 	} mode = META;
 
 	model::rm_id_t current_room;
+	std::map<model::rm_id_t,bool> room_edited;
+	bool world_edited=false;
 
 	struct {
 		std::string text_editor="nano";
