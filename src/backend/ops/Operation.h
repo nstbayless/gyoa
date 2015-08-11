@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include "git/GitOps.h"
+#include "../git/GitOps.h"
 
 namespace gyoa {
 namespace model {

@@ -9,9 +9,9 @@ RM := rm -rf
 # All of the sources participating in the build are defined here
 -include sources.mk
 -include src/frontend/console/subdir.mk
--include src/backend/ops/git/subdir.mk
 -include src/backend/ops/subdir.mk
 -include src/backend/model/subdir.mk
+-include src/backend/git/subdir.mk
 -include src/subdir.mk
 -include subdir.mk
 -include objects.mk
