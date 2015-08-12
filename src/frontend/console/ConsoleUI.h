@@ -59,6 +59,11 @@ private:
 	//! allows user to synchronize data to external repository.
 	void editGit();
 
+	//! pulls and merges, asks user for input if there are conflicts.
+	//! All changes should be committed first.
+	//! returns true if successful
+	bool pullAndMerge();
+
 	//! allows user to play game.
 	void playCurrentRoom();
 private:

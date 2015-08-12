@@ -25,6 +25,10 @@ void gyoa::ops::GitOps::setLocalRepoDirectory(std::string dir) {
 	repo_dir=dir;
 }
 
+std::string GitOps::getLocalRepoDirectory() {
+	return repo_dir;
+}
+
 void gyoa::ops::GitOps::setUpstream(std::string upstream) {
 	std::string cmd =
 	std::string(std::string("cd "+repo_dir).c_str())+"; "+

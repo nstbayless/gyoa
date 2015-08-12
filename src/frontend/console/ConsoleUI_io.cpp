@@ -170,9 +170,9 @@ void ConsoleUI::print_help() {
 			print("## HELP MENU: Git Synchronization Mode ##\n"
 					"[q|e] return to edit mode\n"
 					"[s]   save all changes (doesn't synchronize)\n"
-					"[m]   download new content from repository\n"
-					"[p]   upload to repository + download new content (git add + commit + pull + push)\n"
-					"[u]   set upstream repository\n"
+					"[d]   download new content from repository\n"
+					"[u]   upload to repository + download new content (git add + commit + pull + push)\n"
+					"[o]   set upstream repository\n"
 					"[h]   view this screen");
 			break;
 	default:
