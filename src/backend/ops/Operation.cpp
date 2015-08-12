@@ -59,8 +59,10 @@ model::world_t Operation::loadWorld() {
 	}
 }
 
-void Operation::fullyLoad() {
-	//todo
+void Operation::loadAll() {
+	reload();
+	for (auto iter : model->rooms)
+		loadRoom(iter.first);
 }
 
 model::room_t& Operation::loadRoom(rm_id_t id) {
@@ -136,6 +138,9 @@ void Operation::addOption(rm_id_t id,
 
 void Operation::removeOption(rm_id_t rid, opt_id_t oid) {
 	loadRoom(rid).options.erase(oid);
+
+	//trim input:
+	loadRoom(rid).options[oid].option_text.erase(loadRoom(rid).options[oid].option_text.find_last_not_of(" \n\r\t")+1);
 
 	//update model-edited information:
 	loadRoom(rid).edited=true;
@@ -227,7 +232,6 @@ std::string Operation::rm_id_to_filename(rm_id_t id) {
 void gyoa::ops::Operation::reload() {
 	assert(!savePending());
 	*model=loadWorld();
-
 }
 
 } /* namespace ops */

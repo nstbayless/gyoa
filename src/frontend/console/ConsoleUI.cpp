@@ -40,7 +40,7 @@ void ConsoleUI::start() {
 
 	//user selects mode:
 	user_failed:
-	print("Would you like to [e]dit or [p]lay?");
+	print("Would you like to [e]dit, [p]lay, or [q]uit?");
 	char choice = input();
 	if (choice=='e') {
 		mode=EDIT_ROOM;
@@ -48,7 +48,10 @@ void ConsoleUI::start() {
 		mode=PLAY;
 		clear();
 		print_room();
-	} else {
+	} else if (choice=='q') {
+		mode=QUIT;
+		goto exit;
+	}	else {
 		mode=META;
 		goto user_failed;
 	}
@@ -89,7 +92,7 @@ void ConsoleUI::editCurrentRoom() {
 	while (true){
 		auto id = current_room;
 		auto& rm = ops.loadRoom(current_room);
-
+		print ("Enter command. Press [h] for help.");
 		switch (input()) {
 		case 'q': mode=QUIT;									return;
 		case 'p': mode=PLAY; print_room();						return;
@@ -101,6 +104,12 @@ void ConsoleUI::editCurrentRoom() {
 				print_help();
 			}
 			id = current_room;
+			break;
+		case 'i':
+			ops.loadAll();
+			for (auto iter : model.rooms) {
+				print("scenario id "+write_id(iter.first) +" (\""+iter.second.title+"\")");
+			}
 			break;
 		// print room description:
 		case 'r':
@@ -177,7 +186,7 @@ void ConsoleUI::editOptions() {
 	while (true) {
 		auto id = current_room;
 		auto& rm = ops.loadRoom(current_room);
-
+		print ("Enter command. Press [h] for help, [e] to return to edit mode.");
 		switch (char c = input()) {
 			case 'q':
 			case 'e': return;

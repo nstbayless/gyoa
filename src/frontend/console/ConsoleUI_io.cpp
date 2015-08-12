@@ -42,6 +42,8 @@ model::rm_id_t ConsoleUI::inputRoom() {
 			print("No matches for gid " + std::to_string(gid) + ":*  of " + std::to_string(model.rooms.size()) + " possible results.");
 			goto try_again;
 		}
+		for (auto iter : matches)
+			ops.loadRoom(matches[0]);
 		if (matches.size()==1) {
 			print("Match found: " + write_id(matches[0])+" (\"" + model.rooms[matches[0]].title + "\")");
 			print("Confirm? [y]:");
@@ -82,7 +84,7 @@ void ConsoleUI::print(std::string message) {
 
 char ConsoleUI::input(bool prompt) {
 	if (prompt)
-		std::cout<<("enter command. Press [h] for help\n> ");
+		std::cout<<("> ");
 	std::cout.flush();
 	std::string s = inputString(false);
 	if (!s.length())
@@ -93,7 +95,7 @@ char ConsoleUI::input(bool prompt) {
 std::string ConsoleUI::inputString(bool prompt) {
 	using namespace std;
 	if (prompt)
-		print("input text.\n>>>>>");
+		print("\ninput text.\n>>>>>");
 	std::string s;
 	getline(cin,s);
 	return s;
@@ -146,6 +148,7 @@ void ConsoleUI::print_help() {
 					"[o]   edit options\n"
 					"[d]   toggle dead end\n"
 					"[j]   jump to a scenario by id\n"
+					"[i]   list all scenarios by id\n"
 					"[s]   save all\n"
 					"[g]   for synchronization options (git).\n"
 					"[h]   view this screen");
@@ -197,7 +200,7 @@ void ConsoleUI::print_room() {
 		else {
 			print(" "+std::to_string(opt_n)+": "+ iter.second.option_text);
 			if (iter.second.dst.gid==-1)//no destination
-				print("\t(no destination)");
+				print("\t(no destination)\n");
 			else
 				print("\tdestination: scenario id " + write_id(iter.second.dst) + " (\"" + ops.loadRoom(iter.second.dst).title + "\")\n");
 		}
@@ -206,9 +209,9 @@ void ConsoleUI::print_room() {
 	if (!rm.options.size()) {
 		if (rm.dead_end)
 			if (mode != PLAY)
-				print("\n[dead end].");
+				print("[dead end].");
 			else
-				print("\nYou've reached a dead end.");
+				print("You've reached a dead end.");
 		else if (mode == PLAY)
 			print("\n> This is as far as anyone has written so far. "
 					"You may [b]egin play again, [q]uit, or [e]xtend the story from this "

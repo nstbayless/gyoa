@@ -48,7 +48,7 @@ public:
 	//! fully loads operation model, including all rooms. (Rooms can be unloaded ptr data otherwise)
 	//! (set operation model with Operation::setModel())
 	//! Not recommended to call unless number of rooms is known to be small.
-	void fullyLoad();
+	void loadAll();
 
 	//! retrieves room from given id. If no such id maps to a room, an error is thrown.
 	model::room_t& loadRoom(rm_id_t);
