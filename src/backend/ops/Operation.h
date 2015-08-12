@@ -37,13 +37,16 @@ public:
 	//! sets model object to operate on
 	void setModel(model::world_t& model);
 
+	//! removes all information in model.
+	void clearModel();
+
 	//! set directory for file i/o (must end in path separator to be directory)
 	void setDataDirectory(std::string);
 
 	//! loads world object contained in world.txt in data directory.
 	//! (does not set Operation model to be this world.)
-	//! if world does not exist, world is created.
-	model::world_t loadWorld();
+	//! if world does not exist, and autogen is true, world is created.
+	model::world_t loadWorld(bool autogen=false);
 
 	//! fully loads operation model, including all rooms. (Rooms can be unloaded ptr data otherwise)
 	//! (first set operation model with Operation::setModel())

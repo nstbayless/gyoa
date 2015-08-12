@@ -11,9 +11,12 @@
 namespace gyoa {
 namespace ops {
 
+std::string TMP_PULL_DIR="/tmp/gyoa_pull_tmp/";
+
 GitOpsWithTmp::GitOpsWithTmp(Operation* parent) : tmp_ops(false), last_pull_ops(false){
 	this->parent=parent;
-	tmp.setLocalRepoDirectory("/tmp/gyoa_pull_tmp/");
+	tmp.setLocalRepoDirectory(TMP_PULL_DIR);
+	tmp_ops.setDataDirectory(TMP_PULL_DIR);
 }
 
 GitOpsWithTmp::~GitOpsWithTmp() {
@@ -21,7 +24,8 @@ GitOpsWithTmp::~GitOpsWithTmp() {
 
 void GitOpsWithTmp::setLocalRepoDirectory(std::string dir) {
 	data.setLocalRepoDirectory(dir);
-	last_pull.setLocalRepoDirectory(dir+"/.pull_common");
+	last_pull_ops.setDataDirectory(dir+".pull_common/");
+	last_pull.setLocalRepoDirectory(dir+".pull_common/");
 }
 
 void GitOpsWithTmp::setTmpPullDirectory(std::string dir) {
@@ -38,13 +42,16 @@ void GitOpsWithTmp::init(bool silence) {
 void GitOpsWithTmp::setUpstream(std::string upstream) {
 	data.setUpstream(upstream);
 	last_pull.setUpstream(upstream);
-	tmp.setUpstream(upstream);
 }
 
 void GitOpsWithTmp::pull() {
+	tmp.setUpstream(data.getUpstream());
 	tmp.pull();
 	tmp_ops.setModel(tmp_model);
 	tmp_ops.loadAll();
+	system(std::string("rm -rf " + TMP_PULL_DIR).c_str());
+	//pulls files to repo but does not modify files in memory
+	data.pull();
 }
 
 void GitOpsWithTmp::addAll() {
@@ -60,12 +67,8 @@ void GitOpsWithTmp::push() {
 	last_pull.pull();
 }
 
-const std::string CONFLICT_START = "CONFLICT->>";
-const std::string CONFLICT_SEPARATOR = "|<-remote : local->|";
-const std::string CONFLICT_END = "<<-CONFLICT";
-
 std::pair<bool,std::string> GitOpsWithTmp::merge(merge_style style) {
-	last_pull_ops.setModel(last_pull_model);
+	last_pull_ops.setModel(last_pull_model=model::world_t());
 	last_pull_ops.loadAll();
 	bool err=false;
 	std::string msg="";
@@ -89,6 +92,7 @@ std::pair<bool,std::string> GitOpsWithTmp::merge(merge_style style) {
 
 	//now merge rooms:
 	//only need to merge rooms that were in common; otherwise, they're new to both forks.
+	//them add options just in remote
 	for (auto iter_rm : common.rooms) {
 		auto rm_id = iter_rm.first;
 
@@ -134,15 +138,23 @@ std::pair<bool,std::string> GitOpsWithTmp::merge(merge_style style) {
 			opt_local.dst=merge_id(opt_common.dst,opt_remote.dst,opt_local.dst,style,err,msg);
 		}
 
+		//add options unique to remote
+		for (auto iter_opt : rm_remote.options)
+				if (!rm_common.options.count(iter_opt.first))
+					rm_local.options[iter_opt.first]=iter_opt.second;
+
 		//merge room dead-end flag (set to false if options remaining)
 		if (rm_local.options.size())
 			rm_local.dead_end=false;
 		else
 			rm_local.dead_end=merge_bool(rm_common.dead_end,rm_remote.dead_end,rm_local.dead_end,style,err,msg);
 	}
+	for (auto iter_rm : remote.rooms)
+		if (!common.rooms.count(iter_rm.first))
+			local.rooms[iter_rm.first]=iter_rm.second;
 
 	//save changes
-	parent->saveAll();
+	parent->saveAll(true);
 
 	//add & commit
 	data.addAll();
@@ -153,8 +165,16 @@ std::pair<bool,std::string> GitOpsWithTmp::merge(merge_style style) {
 	return std::pair<bool,std::string>(err,msg);
 }
 
+const std::string CONFLICT_START = "CONFLICT->>";
+const std::string CONFLICT_SEPARATOR = "|<-remote : local->|";
+const std::string CONFLICT_END = "<<-CONFLICT";
+
 std::string GitOpsWithTmp::merge_string(std::string common, std::string remote, std::string local,
 		merge_style style, bool& error, std::string& msg) const {
+	if (style==FORCE_LOCAL)
+		return local;
+	if (style==FORCE_REMOTE)
+		return remote;
 	//local and remote changed, but both the same:
 		if (!remote.compare(local))
 			return local;
@@ -166,11 +186,9 @@ std::string GitOpsWithTmp::merge_string(std::string common, std::string remote, 
 			case USE_REMOTE:
 				return remote;
 			case MANUAL:
-				//todo: error, can't return manual result.
-				error=true;
-				msg+="Error merging text.";
+				msg+="Difference in text. Please review.";
 				msg+='\n';
-				return remote;
+				return CONFLICT_START + remote + CONFLICT_SEPARATOR + local + CONFLICT_END;
 			}
 		}
 		//only remote changed:
@@ -186,6 +204,10 @@ std::string GitOpsWithTmp::merge_string(std::string common, std::string remote, 
 
 model::id_type GitOpsWithTmp::merge_id(model::id_type common, model::id_type remote, model::id_type local,
 		merge_style style, bool& error, std::string& msg) const {
+	if (style==FORCE_LOCAL)
+		return local;
+	if (style==FORCE_REMOTE)
+		return remote;
 	//local and remote changed, but both the same:
 	if (remote==local)
 		return local;
@@ -217,6 +239,10 @@ model::id_type GitOpsWithTmp::merge_id(model::id_type common, model::id_type rem
 
 bool GitOpsWithTmp::merge_bool(bool common, bool remote, bool local,
 		merge_style style, bool& error, std::string& msg) const {
+	if (style==FORCE_LOCAL)
+		return local;
+	if (style==FORCE_REMOTE)
+		return remote;
 	//local and remote changed, but both the same:
 	if (remote==local)
 		return local;
@@ -244,6 +270,10 @@ bool GitOpsWithTmp::merge_bool(bool common, bool remote, bool local,
 	//neither changed:
 	assert(common==local&&remote==local);
 	return common;
+}
+
+bool GitOpsWithTmp::commonHistoryExists() {
+	return last_pull.commitCount()>0;
 }
 
 } /* namespace ops */

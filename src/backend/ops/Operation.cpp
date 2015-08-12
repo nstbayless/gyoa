@@ -36,7 +36,7 @@ Operation::Operation(bool use_git) {
 
 Operation::~Operation() {
 	if (gitOps)
-		delete(&gitOps);
+		delete(gitOps);
 }
 
 
@@ -50,7 +50,7 @@ void Operation::setDataDirectory(std::string dir) {
 		gitOps->setLocalRepoDirectory(data_dir);
 }
 
-model::world_t Operation::loadWorld() {
+model::world_t Operation::loadWorld(bool autogen) {
 	FileIO io;
 	try {
 	load_result=true;
@@ -59,13 +59,15 @@ model::world_t Operation::loadWorld() {
 		load_result=false;
 		//no world exists; create one:
 		model::world_t world;
-		world.title="untitled world";
-		world.first_room={0,0};
-		world.next_rm_gid=1;
-		world.rooms[{0,0}]=model::room_t();
-		//make sure starting data is saved:
-		world.rooms[{0,0}].edited=true;
-		world.edited=true;
+		if (autogen){
+			world.title="untitled world";
+			world.first_room={0,0};
+			world.next_rm_gid=1;
+			world.rooms[{0,0}]=model::room_t();
+			//make sure starting data is saved:
+			world.rooms[{0,0}].edited=true;
+			world.edited=true;
+		}
 		return world;
 	}
 }
@@ -240,6 +242,10 @@ bool Operation::savePending() {
 		if (iter.second.edited)
 			return true;
 	return false;
+}
+
+void Operation::clearModel() {
+	*model=model::world_t();
 }
 
 std::string Operation::rm_id_to_filename(rm_id_t id) {

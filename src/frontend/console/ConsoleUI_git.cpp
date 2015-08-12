@@ -25,11 +25,25 @@ void ConsoleUI::editGit() {
 			print(ops.saveAll()); continue;
 		case 'm': //pull
 			ops.gitOps->init();
+			if (!ops.gitOps->commonHistoryExists()) {
+				print("Pulling from new source; overwrite local data? [y/n].");
+				if (input()=='y') {
+					print("Confirmed. Overwriting local files...");
+					ops.gitOps->pull();
+					ops.clearModel();
+					ops.gitOps->merge(ops::FORCE_REMOTE);
+					print("Merge successful.\n\nPress [h] for help.");
+					continue;
+				} else {
+					print("Aborted. Press [h] for help.");
+					continue;
+				}
+			}
 			ops.saveAll();
 			ops.gitOps->addAll();
 			ops.gitOps->commit("pre-pull commit");
 			ops.gitOps->pull();
-			ops.reload();
+			ops.gitOps->merge(ops::MANUAL);
 			print("\nType [h] for help.");
 			continue;
 		case 'p': //push
@@ -42,13 +56,17 @@ void ConsoleUI::editGit() {
 			ops.gitOps->addAll();
 			ops.gitOps->commit(s);
 			ops.gitOps->pull();
+			ops.gitOps->merge(ops::USE_REMOTE);
 			ops.gitOps->push();
-			ops.reload();
 			print("\nType [h] for help.");
 			continue;
 		case 'u': //set upstream
-			print("Enter upstream repository url, e.g. https://github.com/account/gyoa");
+			print("Enter upstream repository url, e.g. https://github.com/account/gyoa\nleave blank to cancel.");
 			s=inputString();
+			if (!s.size()) {
+				print("Cancelled.");
+				continue;
+			}
 			print("Upstream URL: " + s);
 			ops.gitOps->init();
 			ops.gitOps->setUpstream(s);

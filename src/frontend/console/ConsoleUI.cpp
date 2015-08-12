@@ -29,7 +29,7 @@ void ConsoleUI::start() {
 	clear();
 	system("mkdir data");
 	print("loading world...");
-	ops.setModel(model=ops.loadWorld());
+	ops.setModel(model=ops.loadWorld(true));
 	if (ops.loadResult()) {
 		print("world found! \""+model.title+'"');
 	} else {

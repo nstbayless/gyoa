@@ -20,13 +20,13 @@ namespace model {
 //! Model root. contains list of rooms.
 struct world_t {
 	//! name of the gyoa world.
-	std::string title;
+	std::string title="";
 
 	//! the next id_type::gid to be assigned on creation of a new room.
-	unsigned int next_rm_gid;
+	unsigned int next_rm_gid=0;
 
 	//!rm_id_t of starting room.
-	id_type first_room;
+	id_type first_room={0,0};
 
 	//! list of rooms, mapped from id_type to room_t.
 	std::map<id_type,room_t> rooms;

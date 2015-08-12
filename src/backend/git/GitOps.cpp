@@ -7,9 +7,10 @@
 
 #include "GitOps.h"
 
-#include <cstdlib>
-#include <string>
 #include <cassert>
+#include <cstdlib>
+#include <fstream>
+#include <sstream>
 
 namespace gyoa {
 namespace ops {
@@ -35,7 +36,7 @@ void gyoa::ops::GitOps::setUpstream(std::string upstream) {
 }
 
 void gyoa::ops::GitOps::pull() {
-	system(std::string("cd "+repo_dir+"; git pull origin master; cd - >/dev/null").c_str());
+	system(std::string("cd "+repo_dir+"; git pull --no-commit origin master; cd - >/dev/null").c_str());
 }
 
 void gyoa::ops::GitOps::addAll() {
@@ -60,6 +61,28 @@ void gyoa::ops::GitOps::init(bool silent) {
 
 void gyoa::ops::GitOps::push() {
 	system(std::string("cd "+repo_dir +"; git push -u origin master; cd - >/dev/null").c_str());
+}
+
+const std::string TMP_GIT_FILE = "/tmp/gyoa_git_stats.txt";
+
+int GitOps::commitCount() {
+	system(std::string("cd " + repo_dir + "; git rev-list HEAD --count > " + TMP_GIT_FILE + "; cd -").c_str());
+	std::ifstream t(TMP_GIT_FILE);
+	std::stringstream buffer;
+	buffer << t.rdbuf();
+	std::string content =buffer.str();
+	if (content.size()==0)
+		return 0;
+	return atoi(content.c_str());
+}
+
+std::string GitOps::getUpstream() {
+	system(std::string("cd " + repo_dir + "; git config --get remote.origin.url > " + TMP_GIT_FILE + "; cd -").c_str());
+	std::ifstream t(TMP_GIT_FILE);
+	std::stringstream buffer;
+	buffer << t.rdbuf();
+	std::string content = buffer.str();
+	return content;
 }
 
 } /* namespace ops */

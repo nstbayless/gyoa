@@ -24,6 +24,9 @@ public:
 	void setLocalRepoDirectory(std::string);
 	void init(bool silence=true);
 	void setUpstream(std::string upstream);
+	std::string getUpstream();
+	//retrieves number of commits in history.
+	int commitCount();
 	void pull();
 	void addAll();
 	void commit(std::string message);
@@ -32,18 +35,19 @@ private:
 	std::string repo_dir;
 };
 
+enum merge_style {
+	USE_LOCAL, USE_REMOTE, FORCE_LOCAL, FORCE_REMOTE, MANUAL,
+};
+
 /** pulls to a tmp folder and last-pull folder, allows merging*/
 class GitOpsWithTmp {
-	enum merge_style {
-		USE_LOCAL,
-		USE_REMOTE,
-		MANUAL,
-	};
 public:
 	GitOpsWithTmp(Operation* parent);
 	~GitOpsWithTmp();
 	void setLocalRepoDirectory(std::string);
 	void setTmpPullDirectory(std::string);
+	//returns true if last_pull has any commit history, meaning a pull has previously occurred
+	bool commonHistoryExists();
 	void init(bool silence=true);
 	void setUpstream(std::string upstream);
 	void pull();
