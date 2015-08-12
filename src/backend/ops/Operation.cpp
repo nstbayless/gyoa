@@ -65,6 +65,12 @@ void Operation::loadAll() {
 		loadRoom(iter.first);
 }
 
+void Operation::loadAllUnloaded() {
+	for (auto iter : model->rooms)
+		if (!iter.second.loaded)
+			loadRoom(iter.first);
+}
+
 model::room_t& Operation::loadRoom(rm_id_t id) {
 	checkModel();
 	load_result=false;

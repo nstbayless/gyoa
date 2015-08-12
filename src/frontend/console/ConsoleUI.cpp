@@ -106,7 +106,7 @@ void ConsoleUI::editCurrentRoom() {
 			id = current_room;
 			break;
 		case 'i':
-			ops.loadAll();
+			ops.loadAllUnloaded();
 			for (auto iter : model.rooms) {
 				print("scenario id "+write_id(iter.first) +" (\""+iter.second.title+"\")");
 			}

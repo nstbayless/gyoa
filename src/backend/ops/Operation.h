@@ -50,6 +50,9 @@ public:
 	//! Not recommended to call unless number of rooms is known to be small.
 	void loadAll();
 
+	//! loads all unloaded rooms.
+	void loadAllUnloaded();
+
 	//! retrieves room from given id. If no such id maps to a room, an error is thrown.
 	model::room_t& loadRoom(rm_id_t);
 
