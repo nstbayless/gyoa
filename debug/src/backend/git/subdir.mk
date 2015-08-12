@@ -4,13 +4,16 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../src/backend/git/GitOps.cpp 
+../src/backend/git/GitOps.cpp \
+../src/backend/git/GitOpsTmp.cpp 
 
 OBJS += \
-./src/backend/git/GitOps.o 
+./src/backend/git/GitOps.o \
+./src/backend/git/GitOpsTmp.o 
 
 CPP_DEPS += \
-./src/backend/git/GitOps.d 
+./src/backend/git/GitOps.d \
+./src/backend/git/GitOpsTmp.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

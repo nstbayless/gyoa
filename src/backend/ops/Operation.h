@@ -10,8 +10,6 @@
 
 #include <string>
 
-#include "../git/GitOps.h"
-
 namespace gyoa {
 namespace model {
 struct room_t;
@@ -23,16 +21,18 @@ struct option_t;
 
 namespace gyoa {
 namespace ops {
+class GitOpsWithTmp;
 
 /** operates on model data in backend/model*/
 class Operation {
+	friend class GitOpsWithTmp;
 	using rm_id_t=model::id_type;
 	using opt_id_t=model::id_type;
 public:
-	GitOps gitOps;
+	GitOpsWithTmp* gitOps=nullptr;
 public:
-	Operation();
-	~Operation(){}
+	Operation(bool use_git=true);
+	~Operation();
 
 	//! sets model object to operate on
 	void setModel(model::world_t& model);
@@ -46,8 +46,9 @@ public:
 	model::world_t loadWorld();
 
 	//! fully loads operation model, including all rooms. (Rooms can be unloaded ptr data otherwise)
-	//! (set operation model with Operation::setModel())
+	//! (first set operation model with Operation::setModel())
 	//! Not recommended to call unless number of rooms is known to be small.
+	//! erases any unsaved data.
 	void loadAll();
 
 	//! loads all unloaded rooms.
@@ -94,7 +95,8 @@ public:
 
 	//! saves all edited rooms and world.txt if applicable.
 	//! returns a string describing save result in human-readable form
-	std::string saveAll();
+	//! if force is true, saves everything regardless of edit flag.
+	std::string saveAll(bool force=false);
 
 	//! returns true if model information has been edited since last save
 	bool savePending();
@@ -104,7 +106,7 @@ private:
 
 	//! determines the filename (including data_dir path) of room for room_id
 	std::string rm_id_to_filename(rm_id_t);
-private:
+public:
 	//! directory containing model data:
 	std::string data_dir="data/";
 

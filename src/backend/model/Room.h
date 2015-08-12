@@ -29,6 +29,11 @@ struct id_type {
 	bool operator==(const id_type& other) const {
 		return other.gid==gid&&other.rid==rid;
 	}
+
+	bool operator!=(const id_type& other) const {
+		return !(*this==other);
+	}
+
 	bool operator<(const id_type& other) const {
 		if (gid<other.gid)
 			return true;

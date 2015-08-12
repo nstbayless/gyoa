@@ -186,7 +186,7 @@ void ConsoleUI::editOptions() {
 	while (true) {
 		auto id = current_room;
 		auto& rm = ops.loadRoom(current_room);
-		print ("Enter command. Press [h] for help, [e] to return to edit mode.");
+		print ("Enter command. Press [h] for help, [e] to return to main edit menu.");
 		switch (char c = input()) {
 			case 'q':
 			case 'e': return;

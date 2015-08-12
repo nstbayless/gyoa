@@ -59,7 +59,7 @@ void gyoa::ops::GitOps::init(bool silent) {
 }
 
 void gyoa::ops::GitOps::push() {
-	system(std::string("cd "+repo_dir +"; git push origin master; cd - >/dev/null").c_str());
+	system(std::string("cd "+repo_dir +"; git push -u origin master; cd - >/dev/null").c_str());
 }
 
 } /* namespace ops */

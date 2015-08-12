@@ -5,9 +5,10 @@
  *      Author: n
  */
 
-#include <string>
 #include <cassert>
+#include <string>
 
+#include "../../backend/git/GitOps.h"
 #include "ConsoleUI.h"
 
 namespace gyoa { namespace ui {
@@ -23,11 +24,11 @@ void ConsoleUI::editGit() {
 		case 's':
 			print(ops.saveAll()); continue;
 		case 'm': //pull
-			ops.gitOps.init();
+			ops.gitOps->init();
 			ops.saveAll();
-			ops.gitOps.addAll();
-			ops.gitOps.commit("pre-pull commit");
-			ops.gitOps.pull();
+			ops.gitOps->addAll();
+			ops.gitOps->commit("pre-pull commit");
+			ops.gitOps->pull();
 			ops.reload();
 			print("\nType [h] for help.");
 			continue;
@@ -37,11 +38,11 @@ void ConsoleUI::editGit() {
 			if (s.size()==0)
 				s="Default commit message.";
 			ops.saveAll();
-			ops.gitOps.init();
-			ops.gitOps.addAll();
-			ops.gitOps.commit(s);
-			ops.gitOps.pull();
-			ops.gitOps.push();
+			ops.gitOps->init();
+			ops.gitOps->addAll();
+			ops.gitOps->commit(s);
+			ops.gitOps->pull();
+			ops.gitOps->push();
 			ops.reload();
 			print("\nType [h] for help.");
 			continue;
@@ -49,8 +50,8 @@ void ConsoleUI::editGit() {
 			print("Enter upstream repository url, e.g. https://github.com/account/gyoa");
 			s=inputString();
 			print("Upstream URL: " + s);
-			ops.gitOps.init();
-			ops.gitOps.setUpstream(s);
+			ops.gitOps->init();
+			ops.gitOps->setUpstream(s);
 			print("Upstream repository set to "+ s);
 			print("\nType [h] for help.");
 			continue;

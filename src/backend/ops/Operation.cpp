@@ -7,17 +7,17 @@
 
 #include "Operation.h"
 
+#include <cassert>
 #include <cstdlib>
 #include <ctime>
 #include <map>
 #include <utility>
-#include <cassert>
 
 #include "../error.h"
-#include "../ops/FileIO.h"
+#include "../git/GitOps.h"
 #include "../id_parse.h"
 #include "../model/Room.h"
-#include "../model/World.h"
+#include "FileIO.h"
 
 namespace gyoa {
 namespace ops {
@@ -25,11 +25,20 @@ namespace ops {
 using rm_id_t=model::id_type;
 using opt_id_t=model::id_type;
 
-Operation::Operation() {
+Operation::Operation(bool use_git) {
 	using namespace std;
 	srand(time(nullptr));
-	gitOps.setLocalRepoDirectory(data_dir);
+	if (use_git) {
+		gitOps=new GitOpsWithTmp(this);
+		gitOps->setLocalRepoDirectory(data_dir);
+	}
 }
+
+Operation::~Operation() {
+	if (gitOps)
+		delete(&gitOps);
+}
+
 
 void Operation::setModel(model::world_t& model) {
 	this->model=&model;
@@ -37,7 +46,8 @@ void Operation::setModel(model::world_t& model) {
 
 void Operation::setDataDirectory(std::string dir) {
 	this->data_dir=dir;
-	gitOps.setLocalRepoDirectory(data_dir);
+	if (gitOps)
+		gitOps->setLocalRepoDirectory(data_dir);
 }
 
 model::world_t Operation::loadWorld() {
@@ -51,9 +61,10 @@ model::world_t Operation::loadWorld() {
 		model::world_t world;
 		world.title="untitled world";
 		world.first_room={0,0};
-		world.rooms[{0,0}]=model::room_t();
-		world.rooms[{0,0}].edited=true;
 		world.next_rm_gid=1;
+		world.rooms[{0,0}]=model::room_t();
+		//make sure starting data is saved:
+		world.rooms[{0,0}].edited=true;
 		world.edited=true;
 		return world;
 	}
@@ -188,19 +199,19 @@ void Operation::saveWorld() {
 	model->edited=false;
 }
 
-std::string Operation::saveAll() {
+std::string Operation::saveAll(bool force) {
 	std::string result="";
 	//true if something is saved
 	bool anything_saved=false;
 
-	if (model->edited) {
+	if (model->edited||force) {
 		saveWorld();
 		result+="saved world file.\n";
 		anything_saved=true;
 	}
 
 	for (auto iter : model->rooms)
-		if (iter.second.edited) {
+		if (iter.second.edited||force) {
 			result+="saved scenario " + write_id(iter.first) + " to " + saveRoom(iter.first)+"\n";
 			anything_saved=true;
 		}
@@ -237,6 +248,7 @@ std::string Operation::rm_id_to_filename(rm_id_t id) {
 
 void gyoa::ops::Operation::reload() {
 	assert(!savePending());
+	assert(model!=nullptr);
 	*model=loadWorld();
 }
 
