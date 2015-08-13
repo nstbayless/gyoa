@@ -40,16 +40,18 @@ void ConsoleUI::start() {
 	}
 
 	current_room=model.first_room;
+	bool git_pull_reqd=true;
 
 	//user selects mode:
 	pick_mode:
 	print("\nWould you like to [e]dit, [p]lay, or [q]uit?");
 
 	//remote repository options:
-	if (ops.gitOps->getUpstream().size()==0||!ops.gitOps->commonHistoryExists())
-		print("You may also [o]verwrite your local data with an adventure from the internet.");
-	else
-		print("You may also [d]ownload the latest changes to the adventure from the internet. (recommended.)");
+	if (git_pull_reqd)
+		if (ops.gitOps->getUpstream().size()==0||!ops.gitOps->commonHistoryExists())
+			print("You may also [o]verwrite your local data with an adventure from the internet.");
+		else
+			print("You may also [d]ownload the latest changes to the adventure from the internet. (recommended.)");
 
 	char choice = input();
 	if (choice=='e') {
@@ -61,15 +63,16 @@ void ConsoleUI::start() {
 	} else if (choice=='q') {
 		mode=QUIT;
 		goto exit;
-	} else if (choice=='d'&&ops.gitOps->commonHistoryExists()) {
+	} else if (choice=='d'&&ops.gitOps->commonHistoryExists()&&git_pull_reqd) {
 		ops.saveAll();
 		ops.gitOps->init();
 		ops.gitOps->addAll();
 		ops.gitOps->commit("pre-pull commit");
 		pullAndMerge();
+		git_pull_reqd=false;
 		mode=META;
 		goto pick_mode;
-	} else if (choice=='o'&&(ops.gitOps->getUpstream().size()==0||!ops.gitOps->commonHistoryExists())) {
+	} else if (choice=='o'&&git_pull_reqd&(ops.gitOps->getUpstream().size()==0||!ops.gitOps->commonHistoryExists())) {
 		ops.gitOps->init();
 		print("Please enter a URL for the upstream repository, e.g. https://github.com/account/repo\nLeave blank to cancel.");
 		std::string input = inputString();
@@ -82,6 +85,7 @@ void ConsoleUI::start() {
 		ops.gitOps->merge(ops::FORCE_REMOTE);
 		print("Merge successful.\n\nPress [h] for help.");
 		mode=META;
+		git_pull_reqd=false;
 		goto pick_mode;
 	} else {
 		mode=META;
