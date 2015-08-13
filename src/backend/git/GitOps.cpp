@@ -34,7 +34,7 @@ void gyoa::ops::GitOps::setUpstream(std::string upstream) {
 	std::string(std::string("cd "+repo_dir).c_str())+"; "+
 	std::string("git checkout -b master >/dev/null 2>/dev/null; ") +
 	std::string("git remote set-url origin " + upstream)+" >/dev/null 2>/dev/null; "+
-	std::string(std::string("git remote add origin " + upstream).c_str())+" &>/dev/null 2>/dev/null; "+
+	std::string(std::string("git remote add origin " + upstream).c_str())+" &>/dev/null; "+
 	std::string("cd - >/dev/null");
 	system(cmd.c_str());
 }
@@ -51,11 +51,11 @@ void gyoa::ops::GitOps::commit(std::string msg) {
 	assert(msg.size()>0);
 	assert(msg.find("\"")==std::string::npos);
 
-	system(std::string("cd "+repo_dir + "; " + "git commit -m \"" + msg + "\"; cd - >/dev/null").c_str());
+	system(std::string("cd "+repo_dir + "; " + "git commit -m \"" + msg + "\" &> /dev/null; cd - >/dev/null").c_str());
 }
 
 void gyoa::ops::GitOps::init(bool silent) {
-	system(std::string("git init "+repo_dir + ((silent)?" > /dev/null":"")+";"
+	system(std::string("git init "+repo_dir + ((silent)?" &> /dev/null":"")+";"
 			"cd " + repo_dir + "; "
 			" git config user.name \"gyoa-client\"; "
 			  " git config user.email \"asdf@asdf.com\";"
