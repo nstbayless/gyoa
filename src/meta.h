@@ -8,13 +8,18 @@
 #ifndef META_H_
 #define META_H_
 
-namespace gyoa { namespace meta {
+#include <string>
 
-const std::string BUILD_DATE = 		__DATE__;
-const std::string BUILD_TIME = 		__TIME__;
-const std::string NAME_CONDENSED = 	"gyoa";
-const std::string NAME_FULL = 		"Git-Your-Own-Adventure";
-const std::string VERSION = 		"0.2";
+namespace gyoa {
 
-}}
+struct meta {
+
+static const std::string BUILD_DATE;
+static const std::string BUILD_TIME;
+static const std::string NAME_CONDENSED;
+static const std::string NAME_FULL;
+static const std::string VERSION;
+
+};
+}
 #endif /* META_H_ */

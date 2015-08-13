@@ -30,7 +30,7 @@ void ConsoleUI::start() {
 	clear();
 	print("Welcome to " + meta::NAME_FULL+"!");
 	print("Built: "+meta::BUILD_DATE +" at " + meta::BUILD_TIME);
-	system("mkdir data > /dev/null");
+	system("mkdir data 2> /dev/null");
 	print("\nloading world...");
 	ops.setModel(model=ops.loadWorld(true));
 	if (ops.loadResult()) {

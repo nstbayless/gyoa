@@ -61,7 +61,7 @@ clean:
 	-@echo ' '
 
 pre-build:
-	-rm meta.o
+	-rm src/meta.o
 	-@echo ' '
 
 .PHONY: all clean dependents

@@ -23,8 +23,8 @@ C_UPPER_DEPS :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
-src/frontend/console \
 src \
+src/frontend/console \
 src/backend/ops \
 src/backend/model \
 src/backend/git \
