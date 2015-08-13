@@ -247,9 +247,10 @@ void ConsoleUI::editOptions() {
 						print("[c]reate scenario for option, [l]ink to existing scenario, or continue [e]diting?");
 						switch(input()) {
 							case 'd': //d is allowed as an alternative for c as when editing options below.
-							case 'c': current_room=opt.dst=ops.makeRoom();
+							case 'c':
+								current_room=opt.dst=ops.makeRoom();
 								mode=EDIT_ROOM;
-								return;
+								break;
 							case 'l':
 								//update opt.dst iff input.gid!=-1 (indicating no input entry)
 								input_id = inputRoom();
@@ -265,6 +266,8 @@ void ConsoleUI::editOptions() {
 						//option defined to user's tastes; add to room:
 						ops.addOption(id,opt);
 						print_help();
+						if (mode==EDIT_ROOM)
+							return;
 					} else
 						print("\nCancelled.");
 					break;
