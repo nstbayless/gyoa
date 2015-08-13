@@ -42,7 +42,10 @@ endif
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: gyoa
+all: pre-build main-build
+
+# Main-build Target
+main-build: gyoa
 
 # Tool invocations
 gyoa: $(OBJS) $(USER_OBJS)
@@ -57,7 +60,11 @@ clean:
 	-$(RM) $(C++_DEPS)$(OBJS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) gyoa
 	-@echo ' '
 
+pre-build:
+	-rm meta.o
+	-@echo ' '
+
 .PHONY: all clean dependents
-.SECONDARY:
+.SECONDARY: main-build pre-build
 
 -include ../makefile.targets

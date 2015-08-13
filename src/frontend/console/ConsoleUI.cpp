@@ -12,9 +12,10 @@
 #include <map>
 #include <utility>
 
+#include "../../backend/git/GitOps.h"
 #include "../../backend/id_parse.h"
 #include "../../backend/model/Read.h"
-#include "../../backend/git/GitOps.h"
+#include "../../meta.h"
 
 namespace gyoa {
 namespace ui {
@@ -27,6 +28,8 @@ ConsoleUI::~ConsoleUI() {
 
 void ConsoleUI::start() {
 	clear();
+	print("Welcome to " + meta::NAME_FULL+"!");
+	print("Built: "+meta::BUILD_DATE +" at " + meta::BUILD_TIME);
 	system("mkdir data");
 	print("loading world...");
 	ops.setModel(model=ops.loadWorld(true));
@@ -39,8 +42,15 @@ void ConsoleUI::start() {
 	current_room=model.first_room;
 
 	//user selects mode:
-	user_failed:
+	pick_mode:
 	print("Would you like to [e]dit, [p]lay, or [q]uit?");
+
+	//remote repository options:
+	if (ops.gitOps->getUpstream().size()==0||!ops.gitOps->commonHistoryExists())
+		print("You may also [o]verwrite your local data with an adventure from the internet.");
+	else
+		print("You may also [d]ownload the latest changes to the adventure from the internet. (recommended.)");
+
 	char choice = input();
 	if (choice=='e') {
 		mode=EDIT_ROOM;
@@ -51,9 +61,23 @@ void ConsoleUI::start() {
 	} else if (choice=='q') {
 		mode=QUIT;
 		goto exit;
-	}	else {
+	} else if (choice=='d'&&ops.gitOps->commonHistoryExists()) {
+		ops.saveAll();
+		ops.gitOps->addAll();
+		ops.gitOps->commit("pre-pull commit");
+		pullAndMerge();
 		mode=META;
-		goto user_failed;
+		goto pick_mode;
+	} else if (choice=='o'&&(ops.gitOps->getUpstream().size()==0||!ops.gitOps->commonHistoryExists())) {
+		ops.gitOps->fetch();
+		ops.clearModel();
+		ops.gitOps->merge(ops::FORCE_REMOTE);
+		print("Merge successful.\n\nPress [h] for help.");
+		mode=META;
+		goto pick_mode;
+	} else {
+		mode=META;
+		goto pick_mode;
 	}
 
 	//user has fun:

@@ -108,6 +108,9 @@ public:
 	//! sets origin url
 	void setUpstream(std::string upstream);
 
+	//! Retrieves the URL for the upstream (origin) repository.
+	std::string getUpstream();
+
 	//! retrieves remote branch, does not modify existing local repo directory.
 	void fetch();
 

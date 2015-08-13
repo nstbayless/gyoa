@@ -70,7 +70,7 @@ void gyoa::ops::GitOps::push() {
 const std::string TMP_GIT_FILE = "/tmp/gyoa_git_stats.txt";
 
 int GitOps::commitCount() {
-	system(std::string("cd " + repo_dir + "; git rev-list HEAD --count > " + TMP_GIT_FILE + "; cd -").c_str());
+	system(std::string("cd " + repo_dir + "; git rev-list HEAD --count > " + TMP_GIT_FILE + "; cd - > /dev/null").c_str());
 	std::ifstream t(TMP_GIT_FILE);
 	std::stringstream buffer;
 	buffer << t.rdbuf();
@@ -81,7 +81,7 @@ int GitOps::commitCount() {
 }
 
 std::string GitOps::getUpstream() {
-	system(std::string("cd " + repo_dir + "; git config --get remote.origin.url > " + TMP_GIT_FILE + "; cd -").c_str());
+	system(std::string("cd " + repo_dir + "; git config --get remote.origin.url > " + TMP_GIT_FILE + "; cd - > /dev/null").c_str());
 	std::ifstream t(TMP_GIT_FILE);
 	std::stringstream buffer;
 	buffer << t.rdbuf();

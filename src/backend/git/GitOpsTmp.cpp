@@ -297,6 +297,10 @@ void GitOpsWithTmp::merge_id(model::id_type& result, model::id_type common, mode
 	result= common;
 }
 
+std::string GitOpsWithTmp::getUpstream() {
+	return local_data.getUpstream();
+}
+
 void GitOpsWithTmp::merge_bool(bool& result, bool common, bool remote, bool local, merge_style style, bool& error,
 			std::vector<MergeConflict>& merge_list, std::string error_description) {
 	if (style == FORCE_LOCAL) {
