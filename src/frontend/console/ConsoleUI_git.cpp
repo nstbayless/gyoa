@@ -141,6 +141,7 @@ bool ConsoleUI::pullAndMerge() {
 			return false;
 		}
 	}
+
 	auto result = ops.gitOps->merge(style);
 	print(std::to_string(result.second.size())+" conflicts found.");
 	for (auto conflict : result.second) {

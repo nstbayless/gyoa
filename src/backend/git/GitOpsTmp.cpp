@@ -78,7 +78,11 @@ void GitOpsWithTmp::push() {
 }
 
 std::pair<bool,std::vector<MergeConflict>> GitOpsWithTmp::merge(merge_style style) {
-	local_data.pull();
+	if (style!=TRIAL_RUN) {
+		assert(!parent->savePending());
+		parent->loadAll();
+		local_data.pull();
+	}
 	common_history_ops.setModel(common_history_model=model::world_t());
 	common_history_ops.loadAll();
 	bool err=false;
@@ -194,8 +198,10 @@ void GitOpsWithTmp::merge_string(std::string& result, std::string common, std::s
 		return;
 	}
 	//local and remote changed, but both the same:
-	if (!remote.compare(local))
+	if (!remote.compare(local)) {
 		result = local;
+		return;
+	}
 	//local and remote changed, both different
 	if (common.compare(remote) && common.compare(local)) {
 		switch (style) {
@@ -250,8 +256,10 @@ void GitOpsWithTmp::merge_id(model::id_type& result, model::id_type common, mode
 		return;
 	}
 	//local and remote changed, but both the same:
-	if (remote==local)
+	if (remote==local) {
 		result=local;
+		return;
+	}
 	//local and remote changed, both different
 	if (common!=remote && common!= local) {
 		switch (style) {
@@ -312,8 +320,10 @@ void GitOpsWithTmp::merge_bool(bool& result, bool common, bool remote, bool loca
 		return;
 	}
 	//local and remote changed, but both the same:
-	if (remote == local)
+	if (remote == local) {
 		result = local;
+		return;
+	}
 	//local and remote changed, both different
 	if (common != remote && common != local) {
 		switch (style) {

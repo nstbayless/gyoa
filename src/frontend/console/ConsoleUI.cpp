@@ -63,12 +63,20 @@ void ConsoleUI::start() {
 		goto exit;
 	} else if (choice=='d'&&ops.gitOps->commonHistoryExists()) {
 		ops.saveAll();
+		ops.gitOps->init();
 		ops.gitOps->addAll();
 		ops.gitOps->commit("pre-pull commit");
 		pullAndMerge();
 		mode=META;
 		goto pick_mode;
 	} else if (choice=='o'&&(ops.gitOps->getUpstream().size()==0||!ops.gitOps->commonHistoryExists())) {
+		ops.gitOps->init();
+		print("Please enter a URL for the upstream repository, e.g. https://github.com/account/repo\nLeave blank to cancel.");
+		std::string input = inputString();
+		if (input.size()==0)
+			goto pick_mode;
+
+		ops.gitOps->setUpstream(input);
 		ops.gitOps->fetch();
 		ops.clearModel();
 		ops.gitOps->merge(ops::FORCE_REMOTE);
