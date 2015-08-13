@@ -70,7 +70,7 @@ void gyoa::ops::GitOps::push() {
 const std::string TMP_GIT_FILE = "/tmp/gyoa_git_stats.txt";
 
 int GitOps::commitCount() {
-	system(std::string("cd " + repo_dir + "; git rev-list HEAD --count > " + TMP_GIT_FILE + "; cd - > /dev/null").c_str());
+	system(std::string("cd " + repo_dir + "> /dev/null; git rev-list HEAD --count > " + TMP_GIT_FILE + "; cd - > /dev/null").c_str());
 	std::ifstream t(TMP_GIT_FILE);
 	std::stringstream buffer;
 	buffer << t.rdbuf();
@@ -81,11 +81,33 @@ int GitOps::commitCount() {
 }
 
 std::string GitOps::getUpstream() {
-	system(std::string("cd " + repo_dir + "; git config --get remote.origin.url > " + TMP_GIT_FILE + "; cd - > /dev/null").c_str());
-	std::ifstream t(TMP_GIT_FILE);
-	std::stringstream buffer;
-	buffer << t.rdbuf();
-	std::string content = buffer.str();
+	//return "" if this isn't a git directory -- if git root directory is above
+
+	system(std::string("mkdir -p " + repo_dir + " >/dev/null").c_str());
+
+	system(std::string("cd " + repo_dir + " >/dev/null; git rev-parse --show-toplevel > " + TMP_GIT_FILE).c_str());
+	std::ifstream t0(TMP_GIT_FILE);
+	std::stringstream buffer0;
+	buffer0 << t0.rdbuf();
+	std::string content = buffer0.str();
+
+	if (!content.substr(0,5).compare("fatal"))//not in git repo
+		return "";
+
+	system(std::string("cd " + repo_dir + " >/dev/null; pwd > " + TMP_GIT_FILE).c_str());
+	std::ifstream t1(TMP_GIT_FILE);
+	std::stringstream buffer1;
+	buffer1 << t1.rdbuf();
+	std::string pwd = buffer1.str();
+
+	if (pwd.compare(content))
+		return "";
+
+	system(std::string("cd " + repo_dir + " >/dev/null; git config --get remote.origin.url > " + TMP_GIT_FILE + "; cd - > /dev/null").c_str());
+	std::ifstream t2(TMP_GIT_FILE);
+	std::stringstream buffer2;
+	buffer2 << t2.rdbuf();
+	content = buffer2.str();
 	return content;
 }
 
