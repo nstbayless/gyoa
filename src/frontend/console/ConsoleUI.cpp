@@ -30,8 +30,8 @@ void ConsoleUI::start() {
 	clear();
 	print("Welcome to " + meta::NAME_FULL+"!");
 	print("Built: "+meta::BUILD_DATE +" at " + meta::BUILD_TIME);
-	system("mkdir data");
-	print("loading world...");
+	system("mkdir data > /dev/null");
+	print("\nloading world...");
 	ops.setModel(model=ops.loadWorld(true));
 	if (ops.loadResult()) {
 		print("world found! \""+model.title+'"');
@@ -43,7 +43,7 @@ void ConsoleUI::start() {
 
 	//user selects mode:
 	pick_mode:
-	print("Would you like to [e]dit, [p]lay, or [q]uit?");
+	print("\nWould you like to [e]dit, [p]lay, or [q]uit?");
 
 	//remote repository options:
 	if (ops.gitOps->getUpstream().size()==0||!ops.gitOps->commonHistoryExists())
