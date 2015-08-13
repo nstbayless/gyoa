@@ -211,11 +211,13 @@ void ConsoleUI::print_room() {
 			if (mode != PLAY)
 				print("[dead end].");
 			else
-				print("You've reached a dead end.");
+				print("You've reached a dead end.\n\nPress [h] for help, or [b] to restart from scratch.");
 		else if (mode == PLAY)
 			print("\n> This is as far as anyone has written so far. "
 					"You may [b]egin play again, [q]uit, or [e]xtend the story from this "
 					"point on for other players to enjoy.");
+		else
+			print("[no options]");
 	} else if (mode==PLAY)
 		print("\nPress [h] for help.\n");
 }

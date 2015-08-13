@@ -46,7 +46,9 @@ void GitOpsWithTmp::init(bool silence) {
 	local_data.init(silence);
 	common_history.init(true);
 
-	system(std::string("cd " + local_data.getLocalRepoDirectory() + "; echo .pull_common/* > .gitignore").c_str());
+	system(std::string("cd " + local_data.getLocalRepoDirectory() + "; "
+			"echo \".pull_common\n.pull_common/*\" > .gitignore; "
+			"git status --ignore-submodules > /dev/null").c_str());
 }
 
 void GitOpsWithTmp::setUpstream(std::string upstream) {

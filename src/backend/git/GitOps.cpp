@@ -10,6 +10,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 
 namespace gyoa {
@@ -32,9 +33,9 @@ std::string GitOps::getLocalRepoDirectory() {
 void gyoa::ops::GitOps::setUpstream(std::string upstream) {
 	std::string cmd =
 	std::string(std::string("cd "+repo_dir).c_str())+"; "+
-	std::string("git checkout -b master >/dev/null 2>/dev/null; ") +
-	std::string("git remote set-url origin " + upstream)+" >/dev/null 2>/dev/null; "+
-	std::string(std::string("git remote add origin " + upstream).c_str())+" &>/dev/null; "+
+	std::string("git checkout -b master > /dev/null 2> /dev/null; ") +
+	std::string("git remote set-url origin " + upstream)+" > /dev/null 2> /dev/null; "+
+	std::string(std::string("git remote add origin " + upstream).c_str())+" 2> /dev/null; "+
 	std::string("cd - >/dev/null");
 	system(cmd.c_str());
 }
@@ -55,12 +56,13 @@ void gyoa::ops::GitOps::commit(std::string msg) {
 }
 
 void gyoa::ops::GitOps::init(bool silent) {
-	system(std::string("git init "+repo_dir + ((silent)?" &> /dev/null":"")+";"
+	std::string cmd = (std::string("git init "+repo_dir + std::string((silent)?" --quiet":"")+"; "
 			"cd " + repo_dir + "; "
 			" git config user.name \"gyoa-client\"; "
 			  " git config user.email \"asdf@asdf.com\";"
 			  "cd - > /dev/null"
-			).c_str());
+			));
+	system(cmd.c_str());
 }
 
 void gyoa::ops::GitOps::push() {
@@ -85,7 +87,7 @@ std::string GitOps::getUpstream() {
 
 	system(std::string("mkdir -p " + repo_dir + " >/dev/null").c_str());
 
-	system(std::string("cd " + repo_dir + " >/dev/null; git rev-parse --show-toplevel > " + TMP_GIT_FILE).c_str());
+	system(std::string("cd " + repo_dir + " >/dev/null; git rev-parse --show-toplevel > " + TMP_GIT_FILE +" 2> /dev/null").c_str());
 	std::ifstream t0(TMP_GIT_FILE);
 	std::stringstream buffer0;
 	buffer0 << t0.rdbuf();
@@ -103,7 +105,7 @@ std::string GitOps::getUpstream() {
 	if (pwd.compare(content))
 		return "";
 
-	system(std::string("cd " + repo_dir + " >/dev/null; git config --get remote.origin.url > " + TMP_GIT_FILE + "; cd - > /dev/null").c_str());
+	system(std::string("cd " + repo_dir + " >/dev/null; git config --get remote.origin.url > " + TMP_GIT_FILE + " 2> /dev/null; cd - > /dev/null").c_str());
 	std::ifstream t2(TMP_GIT_FILE);
 	std::stringstream buffer2;
 	buffer2 << t2.rdbuf();

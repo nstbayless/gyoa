@@ -72,7 +72,7 @@ void ConsoleUI::start() {
 		git_pull_reqd=false;
 		mode=META;
 		goto pick_mode;
-	} else if (choice=='o'&&git_pull_reqd&(ops.gitOps->getUpstream().size()==0||!ops.gitOps->commonHistoryExists())) {
+	} else if (choice=='o'&&git_pull_reqd&&(ops.gitOps->getUpstream().size()==0||!ops.gitOps->commonHistoryExists())) {
 		ops.gitOps->init();
 		print("Please enter a URL for the upstream repository, e.g. https://github.com/account/repo\nLeave blank to cancel.");
 		std::string input = inputString();
@@ -126,6 +126,7 @@ void ConsoleUI::editCurrentRoom() {
 	print_help();
 	std::string s;
 	while (true){
+		assert(mode==EDIT_ROOM);
 		auto id = current_room;
 		auto& rm = ops.loadRoom(current_room);
 		print ("Enter command. Press [h] for help.");
@@ -220,6 +221,7 @@ void ConsoleUI::editOptions() {
 
 	//repeatedly get input from user and execute, break if 'q' or 'e' input
 	while (true) {
+		assert(mode == EDIT_OPTIONS);
 		auto id = current_room;
 		auto& rm = ops.loadRoom(current_room);
 		print ("Enter command. Press [h] for help, [e] to return to main edit menu.");
@@ -247,7 +249,7 @@ void ConsoleUI::editOptions() {
 							case 'd': //d is allowed as an alternative for c as when editing options below.
 							case 'c': current_room=opt.dst=ops.makeRoom();
 								mode=EDIT_ROOM;
-								break;
+								return;
 							case 'l':
 								//update opt.dst iff input.gid!=-1 (indicating no input entry)
 								input_id = inputRoom();
@@ -271,7 +273,7 @@ void ConsoleUI::editOptions() {
 			case 'x': print("remove which option? Enter number (0 to cancel)");
 					it = input()-'0';
 					if (it>0 && it<=9) {
-						input_id=model::getOption(rm,it);
+						input_id=model::getOption(ops.loadRoom(id),it);
 
 						if (input_id.gid==-1) {
 							//invalid option input:
