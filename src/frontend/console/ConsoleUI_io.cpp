@@ -42,8 +42,11 @@ model::rm_id_t ConsoleUI::inputRoom() {
 			print("No matches for gid " + std::to_string(gid) + ":*  of " + std::to_string(model.rooms.size()) + " possible results.");
 			goto try_again;
 		}
-		for (auto iter : matches)
+		// for (auto iter : matches)
+		else {
+			// hack: don't care about the rid for now, load first gid match
 			ops.loadRoom(matches[0]);
+		}
 		if (matches.size()==1) {
 			print("Match found: " + write_id(matches[0])+" (\"" + model.rooms[matches[0]].title + "\")");
 			print("Confirm? [y]:");

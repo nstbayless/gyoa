@@ -217,6 +217,11 @@ void GitOpsWithTmp::merge_string(std::string& result, std::string common, std::s
 			error=true;
 			result = local;
 			return;
+		case FORCE_LOCAL:
+		case FORCE_REMOTE:
+			// Were already handled earlier in the function.
+			assert(false);
+			return;
 		case MANUAL:
 			MergeConflict mc;
 			mc.data_type=MergeConflict::STRING;
@@ -274,6 +279,11 @@ void GitOpsWithTmp::merge_id(model::id_type& result, model::id_type common, mode
 		case TRIAL_RUN:
 			error = true;
 			result = local;
+			return;
+		case FORCE_LOCAL:
+		case FORCE_REMOTE:
+			// Were already handled earlier in the function.
+			assert(false);
 			return;
 		case MANUAL:
 			//todo: error, can't return manual result.
@@ -338,6 +348,11 @@ void GitOpsWithTmp::merge_bool(bool& result, bool common, bool remote, bool loca
 		case TRIAL_RUN:
 			error = true;
 			result = local;
+			return;
+		case FORCE_LOCAL:
+		case FORCE_REMOTE:
+			// Were already handled earlier in the function.
+			assert(false);
 			return;
 		case MANUAL:
 			//todo: error, can't return manual result.

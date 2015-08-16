@@ -47,12 +47,12 @@ void ConsoleUI::start() {
 	print("\nWould you like to [e]dit, [p]lay, or [q]uit?");
 
 	//remote repository options:
-	if (git_pull_reqd)
+	if (git_pull_reqd) {
 		if (ops.gitOps->getUpstream().size()==0||!ops.gitOps->commonHistoryExists())
 			print("You may also [o]verwrite your local data with an adventure from the internet.");
 		else
 			print("You may also [d]ownload the latest changes to the adventure from the internet. (recommended.)");
-
+	}
 	char choice = input();
 	if (choice=='e') {
 		mode=EDIT_ROOM;
