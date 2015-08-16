@@ -18,13 +18,28 @@ namespace model {
 //! comprises an integer that increments for each id, and and a randomly-
 //! generated integer to preclude collisions when committing to git.
 //!
-//! a gid of -1 is reserved for default return values/null id
+//! gid should be >= 0 for existing rooms
+//! a gid of -1 (signed) is reserved for default return values/null id
 struct id_type {
 	// integer (increments global counter on room creation)
-	unsigned int gid;
+	int gid;
 
 	// integer (chosen at random from 0 to MAXINT on room creation)
-	unsigned int rid;
+	int rid;
+
+	static id_type null() {
+		return { -1, -1 };
+	}
+
+	bool is_null() const {
+		// it should be:
+		// return gid == -1;
+		// ...but the game has written 32-bit unsigned -1 to some files.
+		// When this value is read into a 32-bit signed int, it's truncated
+		// to the maximum possible 32-bit signed int, which is 0x7F FF FF FF.
+		// So, here's the hack to be backward compatible with the old file.
+		return gid == -1 || gid == 0x7FFFFFFF;
+	}
 
 	bool operator==(const id_type& other) const {
 		return other.gid==gid&&other.rid==rid;
@@ -35,6 +50,9 @@ struct id_type {
 	}
 
 	bool operator<(const id_type& other) const {
+		if (is_null() || other.is_null())
+			// null rooms shall be sorted at the end
+			return !is_null() && other.is_null();
 		if (gid<other.gid)
 			return true;
 		if (gid==other.gid)

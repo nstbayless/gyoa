@@ -18,7 +18,7 @@ const opt_id_t getOption(room_t& room, int n) {
 				return iter.first;
 			}
 		}
-		return {-1,-1};
+		return opt_id_t::null();
 	}
 }
 

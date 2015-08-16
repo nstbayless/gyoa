@@ -135,7 +135,7 @@ void ConsoleUI::editCurrentRoom() {
 		case 'p': mode=PLAY; print_room();						return;
 		case 'b': current_room=model.first_room; print_help();	continue;
 		case 'j': id=inputRoom();
-			if (id.gid!=-1) {
+			if (!id.is_null()) {
 				//if input, jump to room
 				current_room=id;
 				print_help();
@@ -238,8 +238,8 @@ void ConsoleUI::editOptions() {
 					s = inputString();
 					if (s.length()) {
 						//define option user is adding.
-						//gid=-1 means the option goes nowhere by default.
-						opt.dst.gid=-1;
+						//gid.is_null() means the option goes nowhere by default.
+						opt.dst = model::opt_id_t::null();
 						opt.option_text=s;
 
 						//return here if user does not enter a valid option [c|l|e]
@@ -252,9 +252,9 @@ void ConsoleUI::editOptions() {
 								mode=EDIT_ROOM;
 								break;
 							case 'l':
-								//update opt.dst iff input.gid!=-1 (indicating no input entry)
+								//update opt.dst iff there is an input entry
 								input_id = inputRoom();
-								if (input_id.gid==-1) {
+								if (input_id.is_null()) {
 									print("\nCancelled operation.");
 									break;
 								} else
@@ -278,7 +278,7 @@ void ConsoleUI::editOptions() {
 					if (it>0 && it<=9) {
 						input_id=model::getOption(ops.loadRoom(id),it);
 
-						if (input_id.gid==-1) {
+						if (input_id.is_null()) {
 							//invalid option input:
 							print("\nNo such option exists to remove.");
 							break;
@@ -295,7 +295,7 @@ void ConsoleUI::editOptions() {
 					//edit an existing option:
 					if (it>0 && it<=9) {
 						input_id=model::getOption(rm,it);
-						if (input_id.gid==-1) {
+						if (input_id.is_null()) {
 							//invalid option input:
 							print("\nNo such option exists to edit, but you can [a]dd it if you prefer.");
 							break;
@@ -303,7 +303,7 @@ void ConsoleUI::editOptions() {
 						//valid option input:
 						opt_input=rm.options[input_id];
 						print("Current text: "+opt_input.option_text);
-						if (opt_input.dst.gid==-1)
+						if (opt_input.dst.is_null())
 							print ("No Destination");
 						else
 							print("Destination: "+write_id(opt_input.dst));
@@ -354,7 +354,7 @@ void ConsoleUI::playCurrentRoom() {
 			for (auto iter : rm.options) {
 				choice--;
 				if (choice==0) {
-					if (iter.second.dst.gid==-1) { //no destination for given option
+					if (iter.second.dst.is_null()) { //no destination for given option
 						print("This option's scenario has not been written.\n"
 								"You may [c]reate a scenario for the option, "
 								"[r]eturn to pick another option, "

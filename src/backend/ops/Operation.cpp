@@ -139,7 +139,7 @@ void Operation::addOption(rm_id_t id,
 		model::option_t option) {
 	auto& options = loadRoom(id).options;
 	//add option with gid = highest gid + 1.
-	unsigned int max_opt_gid=0;
+	int max_opt_gid=0;
 	//find highest gid
 	for (auto iter : options)
 		if (iter.first.gid>max_opt_gid)
@@ -149,7 +149,8 @@ void Operation::addOption(rm_id_t id,
 	option.option_text.erase(option.option_text.find_last_not_of(" \n\r\t")+1);
 
 	//create id for option by
-	options[{max_opt_gid+1,random()}]=option;
+	int rnd_nr = random(); // narrowing allowed here from long to int
+	options[{max_opt_gid+1, rnd_nr}]=option;
 
 	//update model-edited information:
 	loadRoom(id).edited=true;
