@@ -38,35 +38,42 @@ void FileIO::writeRoomToFile(model::room_t rm, std::string fname) const {
 	decl->append_attribute(doc.allocate_attribute("encoding", "utf-8"));
 	doc.append_node(decl);
 
+	//write room version to doc (not currently read)
 	xml_node<>* root = doc.allocate_node(node_element, "room");
 	root->append_attribute(doc.allocate_attribute("version", "0.2"));
 	doc.append_node(root);
 
+	//write room title to doc
 	xml_node<>* title = doc.allocate_node(node_element, "title");
 	title->append_attribute(doc.allocate_attribute("text", rm.title.c_str()));
 	root->append_node(title);
 
+	//write room header to doc
 	xml_node<>* body = doc.allocate_node(node_element, "body");
 	body->append_attribute(doc.allocate_attribute("text", rm.body.c_str()));
 	root->append_node(body);
-	std::vector<std::pair<std::string,std::string>> aaa;
-	int option = 0;
-	for (auto opt_p : rm.options) {
-		auto opt=opt_p.second;
+
+	//stores char* strings so that they are not persist outside of the following loop.
+	//stores pair: (option dst, option id in room)
+	std::vector<std::pair<std::string,std::string>> attribute_store;
+
+	//write each option to doc:
+	for (auto opt_it : rm.options) {
+		auto option=opt_it.second;
 		xml_node<>* opt_n = doc.allocate_node(node_element, "option");
-		auto a = std::pair<std::string,std::string>(write_id(opt.dst),write_id(opt_p.first));
-		aaa.push_back(a);
-		opt_n->append_attribute(doc.allocate_attribute("dst", aaa.back().first.c_str()));
-		opt_n->append_attribute(doc.allocate_attribute("text", opt.option_text.c_str()));
-		opt_n->append_attribute(doc.allocate_attribute("id",aaa.back().second.c_str()));
+		attribute_store.push_back(std::pair<std::string,std::string>(write_id(option.dst),write_id(opt_it.first)));
+		opt_n->append_attribute(doc.allocate_attribute("dst", attribute_store.back().first.c_str()));
+		opt_n->append_attribute(doc.allocate_attribute("text", option.option_text.c_str()));
+		opt_n->append_attribute(doc.allocate_attribute("id",attribute_store.back().second.c_str()));
 		root->append_node(opt_n);
-		option++;
 	}
 
+	//include dead-end flag as node in doc if applicable.
 	xml_node<>* dead_end = doc.allocate_node(node_element, "dead_end");
 	if (rm.dead_end)
 		root->append_node(dead_end);
 
+	//write doc to file
 	std::ofstream myfile;
 	myfile.open(fname);
 	myfile << doc;
@@ -116,25 +123,36 @@ void gyoa::FileIO::writeWorldToFile(gyoa::model::world_t& world,
 	decl->append_attribute(doc.allocate_attribute("encoding", "utf-8"));
 	doc.append_node(decl);
 
+	//write version information to doc; not currently read.
 	xml_node<>* root = doc.allocate_node(node_element, "world");
 	root->append_attribute(doc.allocate_attribute("version", "0.2"));
 	std::string id = write_id(world.first_room);
+
+	//write the id of the opening room to the doc
 	root->append_attribute(doc.allocate_attribute("start_rm_id", id.c_str()));
 	std::string gid = std::to_string(world.next_rm_gid);
+
+	//write the id of the next room to be created to the doc
 	root->append_attribute(doc.allocate_attribute("next_rm_gid", gid.c_str()));
 	doc.append_node(root);
 
+	//write the title of the world to the doc
 	xml_node<>* title = doc.allocate_node(node_element, "title");
 	title->append_attribute(doc.allocate_attribute("text", world.title.c_str()));
 	root->append_node(title);
 
-	std::vector<std::string> aa;
-	for (auto iter : world.rooms){
+	//stores char* strings of id information to persist after loop below
+	std::vector<std::string> id_store;
+
+	//write the gid of every room in the world to the doc.
+	for (auto rm_it : world.rooms){
 		xml_node<>* rm = doc.allocate_node(node_element, "rm");
-		aa.push_back(write_id(iter.first));
-		rm->append_attribute(doc.allocate_attribute("id", aa.back().c_str()));
+		id_store.push_back(write_id(rm_it.first));
+		rm->append_attribute(doc.allocate_attribute("id", id_store.back().c_str()));
 		root->append_node(rm);
 	}
+
+	//write the doc to a file
 	std::ofstream myfile;
 	myfile.open(filename);
 	myfile << doc;

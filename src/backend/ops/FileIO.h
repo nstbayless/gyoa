@@ -17,6 +17,9 @@ struct id_type;
 struct room_t;
 } /* namespace model */
 
+
+//! collection of file IO methods.
+//todo: should be a namespace not a class.
 class FileIO {
 public:
 	FileIO();
