@@ -32,13 +32,7 @@ struct id_type {
 	}
 
 	bool is_null() const {
-		// it should be:
-		// return gid == -1;
-		// ...but the game has written 32-bit unsigned -1 to some files.
-		// When this value is read into a 32-bit signed int, it's truncated
-		// to the maximum possible 32-bit signed int, which is 0x7F FF FF FF.
-		// So, here's the hack to be backward compatible with the old file.
-		return gid == -1 || gid == 0x7FFFFFFF;
+		return gid == -1;
 	}
 
 	bool operator==(const id_type& other) const {

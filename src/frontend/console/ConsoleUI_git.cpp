@@ -143,7 +143,9 @@ bool ConsoleUI::pullAndMerge() {
 	}
 
 	auto result = ops.gitOps->merge(style);
-	print(std::to_string(result.second.size())+" conflicts found.");
+
+	if (style==ops::MANUAL)
+		print(std::to_string(result.second.size())+" conflicts found.");
 	for (auto conflict : result.second) {
 		user_failed:
 		print("\nConflict: " + conflict.description);

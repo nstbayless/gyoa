@@ -105,7 +105,8 @@ std::pair<bool,std::vector<MergeConflict>> GitOpsWithTmp::merge(merge_style styl
 	merge_id(local.first_room,common.first_room,remote.first_room,local.first_room,style,err,merge_list,"ID of opening scenario");
 
 	//set world next_gid to the larger of the two:
-	local.next_rm_gid=std::max(local.next_rm_gid,remote.next_rm_gid);
+	if (style!=TRIAL_RUN)
+		local.next_rm_gid=std::max(local.next_rm_gid,remote.next_rm_gid);
 
 	//now merge rooms:
 	//only need to merge rooms that were in common; otherwise, they're new to both forks.
