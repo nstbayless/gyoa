@@ -108,7 +108,7 @@ public:
 	void push(context::context_t&);
 private:
 	//! tree for current revisions. Similar to git add --all.
-	const git_tree * setStaged(std::vector<std::string> paths);
+	git_tree * setStaged(std::vector<std::string> paths);
 
 	//! retrieves head commit, or nullptr. Don't forget to free.
 	git_commit * getHead();

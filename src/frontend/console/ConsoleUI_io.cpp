@@ -200,7 +200,7 @@ void ConsoleUI::print_room() {
 		assert(opt_n < 10);
 		if (mode==PLAY) {
 			print("[" + std::to_string(opt_n) + ((iter.second.dst.is_null())?"]*> ":"] > ") + iter.second.option_text);
-			print(write_id(iter.second.dst));
+			//print(write_id(iter.second.dst));
 		}
 		else {
 			print(" "+std::to_string(opt_n)+": "+ iter.second.option_text);

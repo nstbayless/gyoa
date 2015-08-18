@@ -19,7 +19,7 @@ namespace context {
  * such as current room, room history, user prefs, setc.*/
 struct context_t {
 	std::string user_name   ="gyoa_client";
-	std::string user_email  ="< >";
+	std::string user_email  ="?@?";
 	std::string upstream_url="";
 	model::rm_id_t current_room=model::id_type::null();
 };

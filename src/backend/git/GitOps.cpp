@@ -76,6 +76,8 @@ void GitOps::commit(context::context_t& context,std::string message) {
 	std::vector<std::string> paths;
 	//todo: add paths
 
+	git_tree* tree = setStaged(paths);
+
 	git_commit_create(
 	  nullptr,
 	  repo,
@@ -84,9 +86,11 @@ void GitOps::commit(context::context_t& context,std::string message) {
 	  sig,							/* committer */
 	  "UTF-8",						/* message encoding */
 	  message.c_str(),				/* message */
-	  setStaged(paths),				/* root tree */
+	  tree,							/* root tree to commit*/
 	  2,							/* parent count */
 	  parents);						/* parents */
+
+	git_tree_free(tree);
 
 	if (head)
 		git_commit_free(head);
@@ -108,8 +112,8 @@ struct walk_data {
 
 std::pair<bool, std::vector<MergeConflict> > GitOps::merge(
 		merge_style style, ops::Operation& ops,context::context_t& context) {
-	git_commit* remote_commit = GitOps::getFetchCommit();
-	git_commit* common_commit = GitOps::getCommon();
+	git_commit* remote_commit = getFetchCommit();
+	git_commit* common_commit = getCommon();
 
 	if (style!=TRIAL_RUN) {
 		assert(!ops.savePending());
@@ -221,22 +225,34 @@ std::pair<bool, std::vector<MergeConflict> > GitOps::merge(
 
 	git_commit* head = getHead();
 
-	const git_commit* parents[] = {head,remote_commit};
+	int parent_n=0;
+
+	const git_commit* parents[] = {nullptr,nullptr};
+	if (head)
+		parents[parent_n++]=head;
+	if (remote_commit)
+		parents[parent_n++]=remote_commit;
 
 	std::vector<std::string> paths;
 	//todo: add paths
 
+	git_tree* tree = setStaged(paths);
+
+	git_oid commit;
+
 	git_commit_create(
-	  nullptr,
+	  &commit,
 	  repo,
 	  "HEAD",						/* name of ref to update */
 	  sig,							/* author */
 	  sig,							/* committer */
 	  "UTF-8",						/* message encoding */
 	  "merge remote",				/* message */
-	  setStaged(paths),				/* root tree */
-	  2,							/* parent count */
+	  tree,				/* root tree */
+	  parent_n,							/* parent count */
 	  parents);						/* parents */
+
+	git_tree_free(tree);
 
 	if (head)
 		git_commit_free(head);
@@ -256,20 +272,19 @@ int walk_cb(const char *root, const git_tree_entry *entry, void *dv) {
 	walk_data &d = *(walk_data*) dv;
 	git_object* obj=nullptr;
 	git_blob* blob=nullptr;
-	git_buf buf = {nullptr,0,0};
 	git_tree_entry_to_object(&obj,d.repo,entry);
+	//filename associated with blob
 	std::string filename = git_tree_entry_name(entry);
-	git_blob_lookup(&blob,d.repo,git_object_id(obj));
-	git_blob_filtered_content(&buf,blob,filename.c_str(),true);
+	if (git_blob_lookup(&blob,d.repo,git_object_id(obj))) {
+		git_object_free(obj);
+		git_blob_free(blob);
+		return 0;
+	}
+	const void* content_ptr=git_blob_rawcontent(blob);
 	git_object_free(obj);
-	buf.ptr;
 
+	std::string output((const char*)content_ptr);
 
-	//the name of the git file
-
-	std::string output;
-	for (int i=0;i<buf.size;i++)
-		output+=*((char*)(buf.ptr)+i);
 	std::cout<<output;
 
 	FileIO io;
@@ -287,15 +302,18 @@ int walk_cb(const char *root, const git_tree_entry *entry, void *dv) {
 		d.world=w;
 	}
 
-	git_buf_free(&buf);
+	//git_buf_free(&buf);
+	git_blob_free(blob);
 	return 0;
 }
 
 model::world_t GitOps::modelFromCommit(git_commit*) {
 	git_commit * fetched = getFetchCommit();
+	model::world_t world;
+	if (!fetched)
+		return world;
 	git_tree* tree;
 	git_commit_tree(&tree, fetched);
-	model::world_t world;
 	walk_data d = {world,repo};
 	git_tree_walk(tree, GIT_TREEWALK_PRE, &walk_cb, &d);
 	return world;
@@ -305,12 +323,14 @@ void GitOps::push(context::context_t& context) {
 	git_remote_push(getOrigin(context),nullptr,nullptr);
 }
 
-const git_tree* GitOps::setStaged(std::vector<std::string> paths) {
+git_tree* GitOps::setStaged(std::vector<std::string> paths) {
 	git_treebuilder* bld = nullptr;
-	git_tree* src;
+	git_tree* src=nullptr;
 	git_commit* head = getHead();
-	git_commit_tree(&src, head);
+	if (head)
+		git_commit_tree(&src, head);
 	git_treebuilder_new(&bld, repo, src);
+	assert(bld);
 	if (head)
 		git_commit_free(head);
 
@@ -328,14 +348,17 @@ const git_tree* GitOps::setStaged(std::vector<std::string> paths) {
 	git_oid oid;
 	git_treebuilder_write(&oid, bld);
 	git_treebuilder_free(bld);
-	return src;
+	git_tree* tree=nullptr;
+	git_tree_lookup(&tree,repo,&oid);
+	return tree;
 }
 
 git_commit* GitOps::getHead() {
 	git_commit* head = nullptr;
 
 	git_reference * ref = nullptr;
-	if (!git_reference_lookup(&ref, repo, "refs/heads/master")) {
+	git_reference_lookup(&ref, repo, "refs/heads/master");
+	if (ref) {
 		const git_oid * parent_oid = git_reference_target(ref);
 		git_commit_lookup(&head, repo, parent_oid);
 	}
@@ -344,15 +367,16 @@ git_commit* GitOps::getHead() {
 }
 
 git_commit* GitOps::getFetchCommit() {
-	git_commit* head = nullptr;
+	git_commit* remote = nullptr;
 
 	git_reference * ref = nullptr;
-	if (!git_reference_dwim(&ref, repo, "origin/master")) {
+	git_reference_dwim(&ref, repo, "remotes/origin/master");
+	if (ref) {
 		const git_oid * parent_oid = git_reference_target(ref);
-		git_commit_lookup(&head, repo, parent_oid);
+		git_commit_lookup(&remote, repo, parent_oid);
 	}
 	git_reference_free(ref);
-	return head;
+	return remote;
 }
 
 git_commit* GitOps::getCommon() {
@@ -388,23 +412,20 @@ git_commit* GitOps::getCommon() {
 	auto iter_loc = local_ancestors.rbegin();
 	auto iter_rem = remote_ancestors.rbegin();
 
-	if (iter_loc!=iter_rem)
+	if (local_ancestors.size()==0||remote_ancestors.size()==0||*iter_loc != *iter_rem)
 		//no common history
-		return nullptr;
-
-	while (true){
-		if (iter_loc==local_ancestors.rend())
-			to_return = *iter_loc;
-		if (iter_rem==remote_ancestors.rend())
-			to_return = *iter_rem;
-		if (*(iter_loc+1)!=*(iter_rem+1))
-			to_return = *iter_loc; //==iter_rem
-		iter_loc++;
-		iter_rem++;
-
-		if (to_return)
-			break;
-	}
+		to_return = nullptr;
+	else
+		while (!to_return) {
+			if (iter_loc + 1 == local_ancestors.rend())
+				to_return = *iter_loc;
+			else if (iter_rem + 1 == remote_ancestors.rend())
+				to_return = *iter_rem;
+			else if (*(iter_loc + 1) != *(iter_rem + 1))
+				to_return = *iter_loc; //==iter_rem
+			iter_loc++;
+			iter_rem++;
+		}
 
 	for (auto iter : local_ancestors)
 		if (iter)
@@ -421,11 +442,14 @@ git_remote* GitOps::getOrigin(context::context_t& context) {
 	git_remote* origin = nullptr;
 	git_remote_lookup(&origin, repo, "origin");
 	if (origin) {
-		if (context.upstream_url.compare(std::string(git_remote_url(origin))))
+		if (context.upstream_url.compare(std::string(git_remote_url(origin)))) {
 				git_remote_set_url(repo,"origin",context.upstream_url.c_str());
+				git_remote_set_pushurl(repo,"origin",context.upstream_url.c_str());
+		}
 		return origin;
 	}
 	git_remote_create(&origin, repo, "origin",context.upstream_url.c_str());
+	git_remote_set_pushurl(repo,"origin",context.upstream_url.c_str());
 	return origin;
 }
 
