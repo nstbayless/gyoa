@@ -7,8 +7,9 @@
 
 #include "FileIO.h"
 
-#include "rapidxml.hpp"
-#include "rapidxml_print.hpp"
+#include <rapidxml.hpp>
+#include <rapidxml_print.hpp>
+
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
@@ -53,18 +54,22 @@ void FileIO::writeRoomToFile(model::room_t rm, std::string fname) const {
 	body->append_attribute(doc.allocate_attribute("text", rm.body.c_str()));
 	root->append_node(body);
 
-	//stores char* strings so that they are not persist outside of the following loop.
-	//stores pair: (option dst, option id in room)
-	std::vector<std::pair<std::string,std::string>> attribute_store;
+	//stores strings so that they persist past the following loop.
+	struct Store {
+		std::string dst, text, id;
+	};
+	std::vector<Store> store;
+	store.reserve(rm.options.size()); // Don't reallocate ever. The xml lib
+									  // will write to file after the loop.
 
-	//write each option to doc:
 	for (auto opt_it : rm.options) {
-		auto option=opt_it.second;
+		store.push_back( { write_id(opt_it.second.dst),
+						   opt_it.second.option_text,
+						   write_id(opt_it.first) } );
 		xml_node<>* opt_n = doc.allocate_node(node_element, "option");
-		attribute_store.push_back(std::pair<std::string,std::string>(write_id(option.dst),write_id(opt_it.first)));
-		opt_n->append_attribute(doc.allocate_attribute("dst", attribute_store.back().first.c_str()));
-		opt_n->append_attribute(doc.allocate_attribute("text", option.option_text.c_str()));
-		opt_n->append_attribute(doc.allocate_attribute("id",attribute_store.back().second.c_str()));
+		opt_n->append_attribute(doc.allocate_attribute("dst",  store.back().dst .c_str()));
+		opt_n->append_attribute(doc.allocate_attribute("text", store.back().text.c_str()));
+		opt_n->append_attribute(doc.allocate_attribute("id",   store.back().id  .c_str()));
 		root->append_node(opt_n);
 	}
 
@@ -148,6 +153,7 @@ void gyoa::FileIO::writeWorldToFile(gyoa::model::world_t& world,
 
 	//stores char* strings of id information to persist after loop below
 	std::vector<std::string> id_store;
+	id_store.reserve(world.rooms.size());
 
 	//write the gid of every room in the world to the doc.
 	for (auto rm_it : world.rooms) {
