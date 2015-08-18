@@ -39,7 +39,7 @@ void ConsoleUI::start() {
 		print("No world found. Created new world instead.");
 	}
 
-	current_room=model.first_room;
+	context.current_room=model.first_room;
 	bool git_pull_reqd=true;
 
 	//user selects mode:
@@ -48,7 +48,7 @@ void ConsoleUI::start() {
 
 	//remote repository options:
 	if (git_pull_reqd) {
-		if (ops.gitOps->getUpstream().size()==0||!ops.gitOps->commonHistoryExists())
+		if (context.upstream_url.size()==0)
 			print("You may also [o]verwrite your local data with an adventure from the internet.");
 		else
 			print("You may also [d]ownload the latest changes to the adventure from the internet. (recommended.)");
@@ -63,26 +63,25 @@ void ConsoleUI::start() {
 	} else if (choice=='q') {
 		mode=QUIT;
 		goto exit;
-	} else if (choice=='d'&&ops.gitOps->commonHistoryExists()&&git_pull_reqd) {
+	} else if (choice=='d'&&git_pull_reqd) {
 		ops.saveAll();
-		ops.gitOps->init();
-		ops.gitOps->addAll();
-		ops.gitOps->commit("pre-pull commit");
+		ops.gitOps.init();
+		ops.gitOps.commit(context,"pre-pull commit");
 		pullAndMerge();
 		git_pull_reqd=false;
 		mode=META;
 		goto pick_mode;
-	} else if (choice=='o'&&git_pull_reqd&&(ops.gitOps->getUpstream().size()==0||!ops.gitOps->commonHistoryExists())) {
-		ops.gitOps->init();
+	} else if (choice=='o'&&git_pull_reqd&&context.upstream_url.size()==0) {
+		ops.gitOps.init();
 		print("Please enter a URL for the upstream repository, e.g. https://github.com/account/repo\nLeave blank to cancel.");
 		std::string input = inputString();
 		if (input.size()==0)
 			goto pick_mode;
 
-		ops.gitOps->setUpstream(input);
-		ops.gitOps->fetch();
+		context.upstream_url=input;
+		ops.gitOps.fetch(context);
 		ops.clearModel();
-		ops.gitOps->merge(ops::FORCE_REMOTE);
+		ops.gitOps.merge(ops::FORCE_REMOTE,ops,context);
 		print("Merge successful.\n\nPress [h] for help.");
 		mode=META;
 		git_pull_reqd=false;
@@ -127,20 +126,20 @@ void ConsoleUI::editCurrentRoom() {
 	std::string s;
 	while (true){
 		assert(mode==EDIT_ROOM);
-		auto id = current_room;
-		auto& rm = ops.loadRoom(current_room);
+		auto id = context.current_room;
+		auto& rm = ops.loadRoom(context.current_room);
 		print ("Enter command. Press [h] for help.");
 		switch (input()) {
 		case 'q': mode=QUIT;									return;
 		case 'p': mode=PLAY; print_room();						return;
-		case 'b': current_room=model.first_room; print_help();	continue;
+		case 'b': context.current_room=model.first_room; print_help();	continue;
 		case 'j': id=inputRoom();
 			if (!id.is_null()) {
 				//if input, jump to room
-				current_room=id;
+				context.current_room=id;
 				print_help();
 			}
-			id = current_room;
+			id = context.current_room;
 			break;
 		case 'i':
 			ops.loadAllUnloaded();
@@ -222,8 +221,8 @@ void ConsoleUI::editOptions() {
 	//repeatedly get input from user and execute, break if 'q' or 'e' input
 	while (true) {
 		assert(mode == EDIT_OPTIONS);
-		auto id = current_room;
-		auto& rm = ops.loadRoom(current_room);
+		auto id = context.current_room;
+		auto& rm = ops.loadRoom(context.current_room);
 		print ("Enter command. Press [h] for help, [e] to return to main edit menu.");
 		switch (char c = input()) {
 			case 'q':
@@ -248,7 +247,7 @@ void ConsoleUI::editOptions() {
 						switch(input()) {
 							case 'd': //d is allowed as an alternative for c as when editing options below.
 							case 'c':
-								current_room=opt.dst=ops.makeRoom();
+								context.current_room=opt.dst=ops.makeRoom();
 								mode=EDIT_ROOM;
 								break;
 							case 'l':
@@ -316,7 +315,7 @@ void ConsoleUI::editOptions() {
 								ops.editOption(id, input_id, opt);
 								continue;
 							case 'd':
-								current_room=opt.dst=ops.makeRoom();
+								context.current_room=opt.dst=ops.makeRoom();
 								ops.editOption(id, input_id, opt);
 								mode=EDIT_ROOM;
 								print_help();
@@ -340,13 +339,13 @@ void ConsoleUI::editOptions() {
 void ConsoleUI::playCurrentRoom() {
 	user_failed:
 	assert(mode==PLAY);
-	auto& rm = ops.loadRoom(current_room);
+	auto& rm = ops.loadRoom(context.current_room);
 	switch(char c = input()){
-	case 'q': mode=QUIT; 									break;
-	case 'e': mode=EDIT_ROOM; 								break;
-	case 'b': current_room=model.first_room; print_room(); 	break;
-	case 'r': print(""); print_room();						break;
-	case 'h': print_help();									break;
+	case 'q': mode=QUIT; 											break;
+	case 'e': mode=EDIT_ROOM; 										break;
+	case 'b': context.current_room=model.first_room; print_room(); 	break;
+	case 'r': print(""); print_room();								break;
+	case 'h': print_help();											break;
 		default:
 		if (c>='1'&&c<='9') {
 			int choice = c-'0';
@@ -365,8 +364,8 @@ void ConsoleUI::playCurrentRoom() {
 							case 'd': //alternative for 'c'
 							case 'c':
 									opt_edit.dst=ops.makeRoom();
-									ops.editOption(current_room,iter.first,opt_edit);
-									current_room=opt_edit.dst;
+									ops.editOption(context.current_room,iter.first,opt_edit);
+									context.current_room=opt_edit.dst;
 									mode=EDIT_ROOM;
 										break;
 							case 'r':
@@ -375,13 +374,13 @@ void ConsoleUI::playCurrentRoom() {
 							case 'e':
 									mode=EDIT_ROOM; return;
 							case 'b':
-									current_room=model.first_room; print_room(); return;
+									context.current_room=model.first_room; print_room(); return;
 							default:
 									print_room();
 						}
 					}
 					else {
-						current_room=iter.second.dst;
+						context.current_room=iter.second.dst;
 						print_room();
 					}
 					return;

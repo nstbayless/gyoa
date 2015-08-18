@@ -81,17 +81,22 @@ void FileIO::writeRoomToFile(model::room_t rm, std::string fname) const {
 }
 
 model::room_t FileIO::loadRoom(std::string filename) const  {
-	using namespace rapidxml;
 
-	model::room_t rm_import;
-	xml_document<> doc;
 	std::ifstream file(filename);
 	if (!file.good())
 		throw FileNotFoundException(filename);
 	std::stringstream buffer;
 	buffer << file.rdbuf();
 	std::string content(buffer.str());
-	doc.parse<0>(&content[0]);
+
+	return loadRoomFromText(content);
+}
+
+model::room_t gyoa::FileIO::loadRoomFromText(std::string text) const {
+	using namespace rapidxml;
+	model::room_t rm_import;
+	xml_document<> doc;
+	doc.parse<0>(&text[0]);
 	xml_node<>* nd_rm = doc.first_node("room");
 	rm_import.title = nd_rm->first_node("title")->first_attribute("text")->value();
 	rm_import.body = nd_rm->first_node("body")->first_attribute("text")->value();
@@ -145,7 +150,7 @@ void gyoa::FileIO::writeWorldToFile(gyoa::model::world_t& world,
 	std::vector<std::string> id_store;
 
 	//write the gid of every room in the world to the doc.
-	for (auto rm_it : world.rooms){
+	for (auto rm_it : world.rooms) {
 		xml_node<>* rm = doc.allocate_node(node_element, "rm");
 		id_store.push_back(write_id(rm_it.first));
 		rm->append_attribute(doc.allocate_attribute("id", id_store.back().c_str()));
@@ -160,28 +165,37 @@ void gyoa::FileIO::writeWorldToFile(gyoa::model::world_t& world,
 }
 
 gyoa::model::world_t gyoa::FileIO::loadWorld(std::string filename) {
-	using namespace rapidxml;
 
-	model::world_t wd_import;
-	xml_document<> doc;
 	std::ifstream file(filename);
 	if (!file.good())
 		throw FileNotFoundException(filename);
 	std::stringstream buffer;
 	buffer << file.rdbuf();
 	std::string content(buffer.str());
-	doc.parse<0>(&content[0]);
+	return loadWorldFromText(content);
+}
+
+gyoa::model::world_t gyoa::FileIO::loadWorldFromText(std::string text) {
+	using namespace rapidxml;
+
+	model::world_t wd_import;
+	xml_document<> doc;
+
+	doc.parse<0>(&text[0]);
 	xml_node<>* nd_wd = doc.first_node("world");
-	wd_import.first_room=parse_id(nd_wd->first_attribute("start_rm_id")->value());
-	wd_import.next_rm_gid=atoi(nd_wd->first_attribute("next_rm_gid")->value());
-	wd_import.title = nd_wd->first_node("title")->first_attribute("text")->value();
+	wd_import.first_room = parse_id(
+			nd_wd->first_attribute("start_rm_id")->value());
+	wd_import.next_rm_gid = atoi(
+			nd_wd->first_attribute("next_rm_gid")->value());
+	wd_import.title =
+			nd_wd->first_node("title")->first_attribute("text")->value();
 	auto node_rm = nd_wd->first_node("rm");
 	while (node_rm) {
 		model::room_t fake;
-		fake.loaded=false;
+		fake.loaded = false;
 		auto id = parse_id(node_rm->first_attribute("id")->value());
-		wd_import.rooms[id]=fake;
-		node_rm=node_rm->next_sibling("rm");
+		wd_import.rooms[id] = fake;
+		node_rm = node_rm->next_sibling("rm");
 	}
 	return wd_import;
 }

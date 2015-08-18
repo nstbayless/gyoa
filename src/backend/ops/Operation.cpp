@@ -14,9 +14,9 @@
 #include <utility>
 
 #include "../error.h"
-#include "../git/GitOps.h"
 #include "../id_parse.h"
 #include "../model/Room.h"
+#include "../model/World.h"
 #include "FileIO.h"
 
 namespace gyoa {
@@ -25,18 +25,13 @@ namespace ops {
 using rm_id_t=model::id_type;
 using opt_id_t=model::id_type;
 
-Operation::Operation(bool use_git) {
+Operation::Operation() {
 	using namespace std;
 	srand(time(nullptr));
-	if (use_git) {
-		gitOps=new GitOpsWithTmp(this);
-		gitOps->setLocalRepoDirectory(data_dir);
-	}
+	gitOps.setLocalRepoDirectory(data_dir);
 }
 
 Operation::~Operation() {
-	if (gitOps)
-		delete(gitOps);
 }
 
 
@@ -46,8 +41,7 @@ void Operation::setModel(model::world_t& model) {
 
 void Operation::setDataDirectory(std::string dir) {
 	this->data_dir=dir;
-	if (gitOps)
-		gitOps->setLocalRepoDirectory(data_dir);
+	gitOps.setLocalRepoDirectory(data_dir);
 }
 
 model::world_t Operation::loadWorld(bool autogen) {

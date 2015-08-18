@@ -25,9 +25,11 @@ public:
 	FileIO();
 	virtual ~FileIO();
 	void writeRoomToFile(gyoa::model::room_t room, std::string filename) const;
-	model::room_t loadRoom(std::string filename="") const;
+	model::room_t loadRoom(std::string filename) const;
+	model::room_t loadRoomFromText(std::string text) const;
 	void writeWorldToFile(gyoa::model::world_t&, std::string filename);
 	gyoa::model::world_t loadWorld(std::string filename);
+	gyoa::model::world_t loadWorldFromText(std::string text);
 };
 }
 

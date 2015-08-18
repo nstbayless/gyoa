@@ -27,15 +27,15 @@ void ConsoleUI::editGit() {
 		case 's':
 			print(ops.saveAll()); continue;
 		case 'd': //pull
-			ops.gitOps->init();
+			ops.gitOps.init();
+			ops.gitOps.fetch(context);
 			//if new source:
-			if (!ops.gitOps->commonHistoryExists()) {
+			if (!ops.gitOps.commonHistoryExists()) {
 				print("Pulling from new source; overwrite local data? [y/n].");
 				if (input()=='y') {
 					print("Confirmed. Overwriting local files...");
-					ops.gitOps->fetch();
 					ops.clearModel();
-					ops.gitOps->merge(ops::FORCE_REMOTE);
+					ops.gitOps.merge(ops::FORCE_REMOTE,ops,context);
 					print("Merge successful.\n\nPress [h] for help.");
 					continue;
 				} else {
@@ -56,8 +56,7 @@ void ConsoleUI::editGit() {
 				}
 			}
 			ops.saveAll();
-			ops.gitOps->addAll();
-			ops.gitOps->commit("pre-pull commit");
+			ops.gitOps.commit(context,"pre-pull commit");
 			pullAndMerge();
 			print("\nType [h] for help.");
 			continue;
@@ -77,11 +76,10 @@ void ConsoleUI::editGit() {
 			s=inputString();
 			if (s.size()==0)
 				s="Default commit message.";
-			ops.gitOps->init();
-			ops.gitOps->addAll();
-			ops.gitOps->commit(s);
+			ops.gitOps.init();
+			ops.gitOps.commit(context,s);
 			if (pullAndMerge())
-				ops.gitOps->push();
+				ops.gitOps.push(context);
 			else
 				print("Merge failed, not uploading local changes.");
 			print("\nType [h] for help.");
@@ -93,9 +91,9 @@ void ConsoleUI::editGit() {
 				print("Cancelled.");
 				continue;
 			}
-			print("Upstream URL: " + s);
-			ops.gitOps->init();
-			ops.gitOps->setUpstream(s);
+			ops.gitOps.init();
+			context.upstream_url=s;
+			ops.gitOps.setOrigin(context);
 			print("Upstream repository set to "+ s);
 			print("\nType [h] for help.");
 			continue;
@@ -115,9 +113,9 @@ const std::string CONFLICT_END = "<<-CONFLICT";
 
 bool ConsoleUI::pullAndMerge() {
 	assert(!ops.savePending());
-	ops.gitOps->fetch();
+	ops.gitOps.fetch(context);
 	ops::merge_style style = ops::MANUAL;
-	if (ops.gitOps->merge(ops::TRIAL_RUN).first) {
+	if (ops.gitOps.merge(ops::TRIAL_RUN,ops,context).first) {
 		print(	"Conflicts exist between your version and the remote version. How should this be handled?\n"
 						"[a]   abort, nothing is changed.\n"
 						"[m]   handle conflicts manually (this might take you a while).\n"
@@ -142,7 +140,7 @@ bool ConsoleUI::pullAndMerge() {
 		}
 	}
 
-	auto result = ops.gitOps->merge(style);
+	auto result = ops.gitOps.merge(style,ops,context);
 
 	if (style==ops::MANUAL)
 		print(std::to_string(result.second.size())+" conflicts found.");

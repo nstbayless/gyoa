@@ -10,6 +10,8 @@
 
 #include <string>
 
+#include "../git/GitOps.h"
+
 namespace gyoa {
 namespace model {
 struct room_t;
@@ -29,9 +31,9 @@ class Operation {
 	using rm_id_t=model::id_type;
 	using opt_id_t=model::id_type;
 public:
-	GitOpsWithTmp* gitOps=nullptr;
+	GitOps gitOps;
 public:
-	Operation(bool use_git=true);
+	Operation();
 	~Operation();
 
 	//! sets model object to operate on

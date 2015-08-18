@@ -12,53 +12,31 @@
 #include <utility>
 #include <vector>
 
-#include "../model/World.h"
-#include "../ops/Operation.h"
+namespace gyoa {
+namespace model {
+struct id_type;
+struct world_t;
+} /* namespace model */
+namespace ops {
+class Operation;
+} /* namespace ops */
+} /* namespace gyoa */
+
+struct git_remote;
+
+struct git_tree;
+
+struct git_commit;
+
+struct git_repository;
+
+struct git_signature;
 
 namespace gyoa {
+namespace context {
+struct context_t;
+} /* namespace context */
 namespace ops {
-
-/**synchronizes using git.
- * Presently invokes git via system calls; this shall be replaced with a library in the future.*/
-class GitOps {
-public:
-	GitOps();
-	~GitOps();
-
-	//! Sets the directory which will be used to store the git repository.
-	//! This should not be invoked after any the repository has already been initialized.
-	void setLocalRepoDirectory(std::string);
-
-	//! Retrieves directory in which local git repo is stored.
-	std::string getLocalRepoDirectory();
-
-	//! initializes the git repository if it has not yet been initialized already.
-	//! Also sets git username and email to default values
-	void init(bool silence=true);
-
-	//! Sets the upstream (origin) repository.
-	void setUpstream(std::string upstream);
-
-	//! Retrieves the URL for the upstream (origin) repository.
-	std::string getUpstream();
-
-	//! Retrieves number of commits in history, zero if no commits have been made.
-	int commitCount();
-
-	//! Pulls from origin, merging in the normal git way.
-	void pull();
-
-	//! stages all edits.
-	void addAll();
-
-	//! commits all staged edits with the given commit message.
-	void commit(std::string message);
-
-	//! pushes commits to origin.
-	void push();
-private:
-	std::string repo_dir;
-};
 
 //! method with which to resolve conflicts when merging
 enum merge_style {
@@ -83,52 +61,70 @@ struct MergeConflict {
 	void* data_ptr;
 };
 
-/** pulls to a tmp folder and last-pull folder, allows merging*/
-class GitOpsWithTmp {
+/**synchronizes using git.
+ * Presently invokes git via system calls; this shall be replaced with a library in the future.*/
+class GitOps {
 public:
-	GitOpsWithTmp(Operation* parent);
-	~GitOpsWithTmp();
+	GitOps();
+	~GitOps();
 
-	//! sets directory to be used for git repo, and automatically sets directory
-	//! for which common history will be stored as a subdir of the given directory.
-	//! ("common history" refers to the last commit shared by the local branch and
-	//! the remote branch.)
+	//! Sets the directory which will be used to store the git repository.
+	//! This should not be invoked after any the repository has already been initialized.
 	void setLocalRepoDirectory(std::string);
 
-	//! sets directory to which remote branch will be pulled to.
-	//! A default directory in /tmp/ will be used if this is not invoked.
-	void setTmpPullDirectory(std::string);
+	//! Retrieves directory in which local git repo is stored.
+	std::string getLocalRepoDirectory();
 
-	//! returns true if common history has any commits, meaning a pull has previously occurred
+	//! sets the fetch/pull origin
+	void setOrigin(context::context_t context);
+
+	//! returns true if repo_dir already is a repository (and is root of repo)
+	bool isRepo();
+
+	//! initializes git repository in repo_dir
+	void open();
+
+	//! initializes empty git repository in repo_dir
+	void init();
+
+	//! clones git repo from upstream url to repo_dir
+	void clone(context::context_t&);
+
+	//! commits all staged edits with the given commit message.
+	void commit(context::context_t&,std::string message);
+
+	void fetch(context::context_t&);
+
+	//! returns true if common history exists with most recently-fetched branch
 	bool commonHistoryExists();
-
-	//! initializes git repo and common history repo.
-	void init(bool silence=true);
-
-	//! sets origin url
-	void setUpstream(std::string upstream);
-
-	//! Retrieves the URL for the upstream (origin) repository.
-	std::string getUpstream();
-
-	//! retrieves remote branch, does not modify existing local repo directory.
-	void fetch();
 
 	//! Merges in fetched changes (from fetch()).
 	//! updates data model in memory, so Operation.reload() is not necessary.
 	//! returns pair (bool error?, list of conflicts for user to resolve,
 	//! or empty list if mergy style is not MANUAL)
-	std::pair<bool,std::vector<MergeConflict>> merge(merge_style);
+	std::pair<bool,std::vector<MergeConflict>> merge(merge_style,ops::Operation& ops,context::context_t&);
 
-	//! stages all changes in local repo directory
-	void addAll();
-
-	//! commits all changes in local repo directory with given message
-	void commit(std::string message);
-
-	//! pushes all commits from local repo.
-	void push();
+	//! pushes commits to origin.
+	void push(context::context_t&);
 private:
+	//! tree for current revisions. Similar to git add --all.
+	const git_tree * setStaged(std::vector<std::string> paths);
+
+	//! retrieves head commit, or nullptr. Don't forget to free.
+	git_commit * getHead();
+
+	//! retrieves last fetched commit.
+	git_commit* getFetchCommit();
+
+	//! retrieves latest common ancestor between fetch and head
+	git_commit* getCommon();
+
+	//! retrieves origin
+	git_remote * getOrigin(context::context_t&);
+
+	//! constructs a model matching the state of the world at the given commit
+	model::world_t modelFromCommit(git_commit*);
+
 	//! merges two strings
 	void merge_string(std::string& result, std::string common, std::string remote, std::string local, merge_style,
 			bool& error, std::vector<MergeConflict>& merge_list, std::string error_description);
@@ -139,15 +135,8 @@ private:
 	void merge_bool(bool& result, bool common, bool remote, bool local, merge_style, bool& error,
 			std::vector<MergeConflict>& merge_list, std::string error_description);
 private:
-	//data Operation required for merging
-	Operation* parent;
-	Operation tmp_remote_ops;
-	Operation common_history_ops;
-	model::world_t tmp_remote_model;
-	model::world_t common_history_model;
-	GitOps local_data;
-	GitOps tmp_remote;
-	GitOps common_history;
+	std::string repo_dir;
+	git_repository* repo=nullptr;
 };
 
 } /* namespace ops */

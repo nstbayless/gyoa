@@ -155,7 +155,7 @@ void ConsoleUI::print_help() {
 					"[s]   save all\n"
 					"[g]   for synchronization options (git).\n"
 					"[h]   view this screen");
-			print("\nediting scenario "+write_id(current_room) + " (\"" + ops.loadRoom(current_room).title +"\")");
+			print("\nediting scenario "+write_id(context.current_room) + " (\"" + ops.loadRoom(context.current_room).title +"\")");
 			if (ops.savePending())
 				print("\nalert: un[s]aved changes.");
 			break;
@@ -187,8 +187,8 @@ void ConsoleUI::print_help() {
 
 void ConsoleUI::print_room() {
 	int opt_n = 1;
-	auto id = current_room;
-	auto& rm = ops.loadRoom(current_room);
+	auto id = context.current_room;
+	auto& rm = ops.loadRoom(context.current_room);
 	if (mode==PLAY)
 		clear();
 	print("## " + rm.title + " ##");

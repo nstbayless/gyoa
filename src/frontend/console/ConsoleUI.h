@@ -10,6 +10,7 @@
 
 #include <string>
 
+#include "../../backend/context/Context.h"
 #include "../../backend/model/Room.h"
 #include "../../backend/model/World.h"
 #include "../../backend/ops/Operation.h"
@@ -77,7 +78,7 @@ private:
 		EDIT_ROOM, EDIT_OPTIONS, EDIT_GIT, PLAY, META, QUIT
 	} mode = META;
 
-	model::rm_id_t current_room;
+	context::context_t context;
 
 	struct {
 		//todo: allow user to edit
