@@ -30,9 +30,9 @@ GitOps::GitOps() {
 }
 
 GitOps::~GitOps() {
-	git_libgit2_shutdown();
 	if (repo)
 		git_repository_free(repo);
+	git_libgit2_shutdown();
 }
 
 void GitOps::setLocalRepoDirectory(std::string dir) {
@@ -69,17 +69,23 @@ void GitOps::commit(context::context_t& context,std::string message) {
 	git_signature* sig=nullptr;
 	git_signature_now(&sig, context.user_name.c_str(), context.user_email.c_str());
 
+	int parent_count=0;
 	git_commit* head = getHead();
 
-	const git_commit* parents[] = {head};
+	const git_commit* parents[] = {nullptr};
+
+	if (head)
+		parents[parent_count++]=head;
 
 	std::vector<std::string> paths;
 	//todo: add paths
 
 	git_tree* tree = setStaged(paths);
 
+	git_oid oid;
+
 	git_commit_create(
-	  nullptr,
+	  &oid,
 	  repo,
 	  "HEAD",						/* name of ref to update */
 	  sig,							/* author */
@@ -87,7 +93,7 @@ void GitOps::commit(context::context_t& context,std::string message) {
 	  "UTF-8",						/* message encoding */
 	  message.c_str(),				/* message */
 	  tree,							/* root tree to commit*/
-	  2,							/* parent count */
+	  parent_count,					/* parent count */
 	  parents);						/* parents */
 
 	git_tree_free(tree);
@@ -113,12 +119,10 @@ struct walk_data {
 std::pair<bool, std::vector<MergeConflict> > GitOps::merge(
 		merge_style style, ops::Operation& ops,context::context_t& context) {
 	git_commit* remote_commit = getFetchCommit();
-	git_commit* common_commit = getCommon();
+	git_commit* common_commit = getCommon(context);
 
-	if (style!=TRIAL_RUN) {
-		assert(!ops.savePending());
-		ops.loadAll();
-	}
+	assert(!ops.savePending());
+	ops.loadAll();
 
 	bool err=false;
 	std::vector<MergeConflict> merge_list;
@@ -252,6 +256,12 @@ std::pair<bool, std::vector<MergeConflict> > GitOps::merge(
 	  parent_n,							/* parent count */
 	  parents);						/* parents */
 
+	char commit_id[41];
+	git_oid_tostr(commit_id,40,&commit);
+	commit_id[40]='\0';
+	context.common_commit_oid=commit_id;
+	ops.saveContext(context);
+
 	git_tree_free(tree);
 
 	if (head)
@@ -285,8 +295,6 @@ int walk_cb(const char *root, const git_tree_entry *entry, void *dv) {
 
 	std::string output((const char*)content_ptr);
 
-	std::cout<<output;
-
 	FileIO io;
 
 	if (!filename.substr(0,3).compare("rm_")) {
@@ -307,13 +315,12 @@ int walk_cb(const char *root, const git_tree_entry *entry, void *dv) {
 	return 0;
 }
 
-model::world_t GitOps::modelFromCommit(git_commit*) {
-	git_commit * fetched = getFetchCommit();
+model::world_t GitOps::modelFromCommit(git_commit* com) {
 	model::world_t world;
-	if (!fetched)
+	if (!com)
 		return world;
 	git_tree* tree;
-	git_commit_tree(&tree, fetched);
+	git_commit_tree(&tree, com);
 	walk_data d = {world,repo};
 	git_tree_walk(tree, GIT_TREEWALK_PRE, &walk_cb, &d);
 	return world;
@@ -379,7 +386,22 @@ git_commit* GitOps::getFetchCommit() {
 	return remote;
 }
 
-git_commit* GitOps::getCommon() {
+bool GitOps::commonHistoryExists(context::context_t& context) {
+	return getCommon(context)!=nullptr;
+}
+
+git_commit* GitOps::getCommon(context::context_t& context) {
+	if (context.common_commit_oid.c_str()&&context.common_commit_oid.size()) {
+		git_oid oid;
+		if (git_oid_fromstrn(&oid, context.common_commit_oid.c_str(),context.common_commit_oid.size()))
+			goto standard;
+		git_commit* common=nullptr;
+		git_commit_lookup(&common,repo,&oid);
+		return common;
+	}
+
+	standard:
+
 	git_commit* const local = getHead();
 	git_commit* const remote = getFetchCommit();
 
@@ -395,15 +417,19 @@ git_commit* GitOps::getCommon() {
 	//todo: check all parents
 	while (local_c != nullptr)
 		if (git_commit_parentcount(local_c)) {
-			if (!git_commit_parent(&local_c, local_c, 0))
-				local_ancestors.push_back(local_c);
+			git_commit* tmp=nullptr;
+			if (!git_commit_parent(&tmp, local_c, 0))
+				local_ancestors.push_back(tmp);
+			local_c=tmp;
 		} else
 			break;
 
 	while (remote_c != nullptr)
 		if (git_commit_parentcount(remote_c)) {
-			if (!git_commit_parent(&remote_c, remote_c, 0))
-				remote_ancestors.push_back(remote_c);
+			git_commit* tmp=nullptr;
+			if (!git_commit_parent(&tmp, remote_c, 0))
+				remote_ancestors.push_back(tmp);
+			remote_c=tmp;
 		} else
 			break;
 
@@ -417,12 +443,18 @@ git_commit* GitOps::getCommon() {
 		to_return = nullptr;
 	else
 		while (!to_return) {
+			/*char id[40];
+			git_oid_tostr(id,40,git_commit_id(*iter_loc));
+			std::cout<<id<<'\n';
+			git_oid_tostr(id,40,git_commit_id(*iter_rem));
+			std::cout<<id<<"\n\n";*/
 			if (iter_loc + 1 == local_ancestors.rend())
 				to_return = *iter_loc;
 			else if (iter_rem + 1 == remote_ancestors.rend())
 				to_return = *iter_rem;
-			else if (*(iter_loc + 1) != *(iter_rem + 1))
+			else if (*(iter_loc + 1) != *(iter_rem + 1)) {
 				to_return = *iter_loc; //==iter_rem
+			}
 			iter_loc++;
 			iter_rem++;
 		}
@@ -463,7 +495,7 @@ void GitOps::merge_string(std::string& result, std::string common, std::string r
 		result = remote;
 		return;
 	}
-	//local and remote changed, but both the same:
+	//local and remote possibly changed, but both the same:
 	if (!remote.compare(local)) {
 		result = local;
 		return;
@@ -586,8 +618,10 @@ void GitOps::setOrigin(context::context_t context) {
 	getOrigin(context);
 }
 
-bool GitOps::commonHistoryExists() {
-	return false;
+void GitOps::clear() {
+	git_repository_free(repo);
+	system(std::string("rm -rf "+repo_dir).c_str());
+	init();
 }
 
 void GitOps::merge_bool(bool& result, bool common, bool remote, bool local, merge_style style, bool& error,

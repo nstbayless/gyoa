@@ -11,6 +11,9 @@
 #include <string>
 
 namespace gyoa {
+namespace context {
+struct context_t;
+} /* namespace context */
 namespace model {
 struct world_t;
 struct id_type;
@@ -30,6 +33,9 @@ public:
 	void writeWorldToFile(gyoa::model::world_t&, std::string filename);
 	gyoa::model::world_t loadWorld(std::string filename);
 	gyoa::model::world_t loadWorldFromText(std::string text);
+	void writeGitignore(std::string filename);
+	void writeContext(context::context_t, std::string filename);
+	context::context_t loadContext(std::string filename);
 };
 }
 

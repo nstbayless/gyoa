@@ -30,13 +30,16 @@ void ConsoleUI::editGit() {
 			ops.gitOps.init();
 			ops.gitOps.fetch(context);
 			//if new source:
-			if (!ops.gitOps.commonHistoryExists()) {
+			if (!ops.gitOps.commonHistoryExists(context)) {
 				print("Pulling from new source; overwrite local data? [y/n].");
 				if (input()=='y') {
 					print("Confirmed. Overwriting local files...");
 					ops.clearModel();
+					ops.gitOps.clear();
+					ops.saveContext(context);
+					ops.gitOps.fetch(context);
 					ops.gitOps.merge(ops::FORCE_REMOTE,ops,context);
-					print("Merge successful.\n\nPress [h] for help.");
+					print("Download successful.\n\nPress [h] for help.");
 					continue;
 				} else {
 					print("Aborted. Press [h] for help.");
@@ -93,6 +96,7 @@ void ConsoleUI::editGit() {
 			}
 			ops.gitOps.init();
 			context.upstream_url=s;
+			ops.saveContext(context);
 			ops.gitOps.setOrigin(context);
 			print("Upstream repository set to "+ s);
 			print("\nType [h] for help.");
@@ -227,6 +231,7 @@ bool ConsoleUI::pullAndMerge() {
 		}
 	}
 	print("Merge complete.");
+	ops.saveAll(true);
 	return true;
 }
 

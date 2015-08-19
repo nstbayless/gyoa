@@ -87,6 +87,9 @@ public:
 	//! initializes empty git repository in repo_dir
 	void init();
 
+	//! deletes the git repository, including files
+	void clear();
+
 	//! clones git repo from upstream url to repo_dir
 	void clone(context::context_t&);
 
@@ -96,7 +99,7 @@ public:
 	void fetch(context::context_t&);
 
 	//! returns true if common history exists with most recently-fetched branch
-	bool commonHistoryExists();
+	bool commonHistoryExists(context::context_t&);
 
 	//! Merges in fetched changes (from fetch()).
 	//! updates data model in memory, so Operation.reload() is not necessary.
@@ -117,7 +120,7 @@ private:
 	git_commit* getFetchCommit();
 
 	//! retrieves latest common ancestor between fetch and head
-	git_commit* getCommon();
+	git_commit* getCommon(context::context_t&);
 
 	//! retrieves origin
 	git_remote * getOrigin(context::context_t&);

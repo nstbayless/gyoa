@@ -17,6 +17,7 @@
 #include "../id_parse.h"
 #include "../model/Room.h"
 #include "../model/World.h"
+#include "../context/Context.h"
 #include "FileIO.h"
 
 namespace gyoa {
@@ -188,6 +189,7 @@ std::string Operation::saveRoom(rm_id_t id) {
 void Operation::saveWorld() {
 	FileIO io;
 	io.writeWorldToFile(*model,data_dir+"world.txt");
+	io.writeGitignore(data_dir+".gitignore.txt");;
 
 	//reset model-edited information:
 	model->edited=false;
@@ -238,6 +240,20 @@ bool Operation::savePending() {
 
 void Operation::clearModel() {
 	*model=model::world_t();
+}
+
+context::context_t Operation::loadContext() {
+	FileIO io;
+	try {
+	return io.loadContext(data_dir+"context.txt");
+	} catch (FileNotFoundException e) {
+		return context::context_t();
+	}
+}
+
+void Operation::saveContext(context::context_t context) {
+	FileIO io;
+	io.writeContext(context,data_dir+"context.txt");
 }
 
 std::string Operation::rm_id_to_filename(rm_id_t id) {

@@ -62,6 +62,9 @@ public:
 	//! retrieves room from given id. If no such id maps to a room, an error is thrown.
 	model::room_t& loadRoom(rm_id_t);
 
+	//! loads user context information (which room currently in, etc.)
+	context::context_t loadContext();
+
 	//! returns true if world or room was loaded, false if generated
 	//! because file not found or if already loaded.
 	bool loadResult();
@@ -97,6 +100,9 @@ public:
 
 	//! saves loaded world to file.
 	void saveWorld();
+
+	//! saves user context information (current room, username, etc.)
+	void saveContext(context::context_t);
 
 	//! saves all edited rooms and world.txt if applicable.
 	//! returns a string describing save result in human-readable form

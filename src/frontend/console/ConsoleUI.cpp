@@ -35,11 +35,15 @@ void ConsoleUI::start() {
 	ops.setModel(model=ops.loadWorld(true));
 	if (ops.loadResult()) {
 		print("world found! \""+model.title+'"');
+		context=ops.loadContext();
+		if (!model.rooms.count(context.current_room))
+			context.current_room=model.first_room;
 	} else {
 		print("No world found. Created new world instead.");
+		context.current_room=model.first_room;
+		ops.saveContext(context);
 	}
 
-	context.current_room=model.first_room;
 	bool git_pull_reqd=true;
 
 	//user selects mode:
@@ -78,11 +82,13 @@ void ConsoleUI::start() {
 		if (input.size()==0)
 			goto pick_mode;
 
+		ops.gitOps.clear();
 		context.upstream_url=input;
+		ops.saveContext(context);
 		ops.gitOps.fetch(context);
 		ops.clearModel();
 		ops.gitOps.merge(ops::FORCE_REMOTE,ops,context);
-		print("Merge successful.\n\nPress [h] for help.");
+		print("Download successful.\n\nPress [h] for help.");
 		mode=META;
 		git_pull_reqd=false;
 		goto pick_mode;
@@ -248,6 +254,7 @@ void ConsoleUI::editOptions() {
 							case 'd': //d is allowed as an alternative for c as when editing options below.
 							case 'c':
 								context.current_room=opt.dst=ops.makeRoom();
+								ops.editRoomTitle(opt.dst,opt.option_text);
 								mode=EDIT_ROOM;
 								break;
 							case 'l':
@@ -317,6 +324,7 @@ void ConsoleUI::editOptions() {
 							case 'd':
 								context.current_room=opt.dst=ops.makeRoom();
 								ops.editOption(id, input_id, opt);
+								ops.editRoomTitle(opt.dst,opt.option_text);
 								mode=EDIT_ROOM;
 								print_help();
 								return;
@@ -365,6 +373,7 @@ void ConsoleUI::playCurrentRoom() {
 							case 'c':
 									opt_edit.dst=ops.makeRoom();
 									ops.editOption(context.current_room,iter.first,opt_edit);
+									ops.editRoomTitle(opt_edit.dst,opt_edit.option_text);
 									context.current_room=opt_edit.dst;
 									mode=EDIT_ROOM;
 										break;
@@ -381,6 +390,7 @@ void ConsoleUI::playCurrentRoom() {
 					}
 					else {
 						context.current_room=iter.second.dst;
+						ops.saveContext(context);
 						print_room();
 					}
 					return;
