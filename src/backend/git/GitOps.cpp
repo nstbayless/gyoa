@@ -35,6 +35,57 @@ GitOps::~GitOps() {
 	git_libgit2_shutdown();
 }
 
+struct walk_data {
+	model::world_t& world;
+	git_repository* repo;
+};
+
+int walk_cb(const char *root, const git_tree_entry *entry, void *dv) {
+	walk_data &d = *(walk_data*) dv;
+	git_object* obj=nullptr;
+	git_blob* blob=nullptr;
+	git_tree_entry_to_object(&obj,d.repo,entry);
+	//filename associated with blob
+	std::string filename = git_tree_entry_name(entry);
+	if (git_blob_lookup(&blob,d.repo,git_object_id(obj))) {
+		git_object_free(obj);
+		git_blob_free(blob);
+		return 0;
+	}
+	const void* content_ptr=git_blob_rawcontent(blob);
+	git_object_free(obj);
+
+	std::string output((const char*)content_ptr);
+
+	if (!filename.substr(0,3).compare("rm_")) {
+		int ext_loc = filename.find(".txt");
+		assert(ext_loc!=std::string::npos);
+		std::string id_str = filename.substr(3,ext_loc);
+		model::id_type id = parse_id(id_str);
+		model::room_t rm = FileIO::loadRoomFromText(output);
+		d.world.rooms[id]=rm;
+	} else if (!filename.compare("world.txt")) {
+		model::world_t w = FileIO::loadWorldFromText(output);
+		w.rooms=d.world.rooms;
+		d.world=w;
+	}
+
+	//git_buf_free(&buf);
+	git_blob_free(blob);
+	return 0;
+}
+
+model::world_t GitOps::modelFromCommit(git_commit* com) {
+	model::world_t world;
+	if (!com)
+		return world;
+	git_tree* tree;
+	git_commit_tree(&tree, com);
+	walk_data d = {world,repo};
+	git_tree_walk(tree, GIT_TREEWALK_PRE, &walk_cb, &d);
+	return world;
+}
+
 void GitOps::setLocalRepoDirectory(std::string dir) {
 	repo_dir=dir;
 }
@@ -77,7 +128,7 @@ void GitOps::commit(context::context_t& context,std::string message) {
 	if (head)
 		parents[parent_count++]=head;
 
-	std::vector<std::string> paths;
+	std::vector<std::string> paths=FileIO::getAllFiles(repo_dir);
 	//todo: add paths
 
 	git_tree* tree = setStaged(paths);
@@ -105,16 +156,13 @@ void GitOps::commit(context::context_t& context,std::string message) {
 
 void GitOps::fetch(context::context_t& context) {
 	git_remote* origin = getOrigin(context);
+	git_fetch_options opts = GIT_FETCH_OPTIONS_INIT;
+	opts.download_tags=GIT_REMOTE_DOWNLOAD_TAGS_NONE;
 	git_remote_fetch(origin,
 		NULL, /* refspecs, NULL to use the configured ones */
-		NULL, /* options, empty for defaults */
+		&opts, /* options, empty for defaults */
 		NULL); /* reflog mesage, usually "fetch" or "pull", you can leave it NULL for "fetch" */
 }
-
-struct walk_data {
-	model::world_t& world;
-	git_repository* repo;
-};
 
 std::pair<bool, std::vector<MergeConflict> > GitOps::merge(
 		merge_style style, ops::Operation& ops,context::context_t& context) {
@@ -144,6 +192,8 @@ std::pair<bool, std::vector<MergeConflict> > GitOps::merge(
 	//set world next_gid to the larger of the two:
 	if (style!=TRIAL_RUN)
 		local.next_rm_gid=std::max(local.next_rm_gid,remote.next_rm_gid);
+
+	std::cout<<common.rooms.size()<<'\n';
 
 	//now merge rooms:
 	//only need to merge rooms that were in common; otherwise, they're new to both forks.
@@ -237,10 +287,7 @@ std::pair<bool, std::vector<MergeConflict> > GitOps::merge(
 	if (remote_commit)
 		parents[parent_n++]=remote_commit;
 
-	std::vector<std::string> paths;
-	//todo: add paths
-
-	git_tree* tree = setStaged(paths);
+	git_tree* tree = setStaged(FileIO::getAllFiles(repo_dir));
 
 	git_oid commit;
 
@@ -252,16 +299,26 @@ std::pair<bool, std::vector<MergeConflict> > GitOps::merge(
 	  sig,							/* committer */
 	  "UTF-8",						/* message encoding */
 	  "merge remote",				/* message */
-	  tree,				/* root tree */
-	  parent_n,							/* parent count */
+	  tree,							/* root tree */
+	  parent_n,						/* parent count */
 	  parents);						/* parents */
 
-	char commit_id[41];
-	git_oid_tostr(commit_id,40,&commit);
-	commit_id[40]='\0';
-	context.common_commit_oid=commit_id;
-	ops.saveContext(context);
+	git_oid oid_tag;
 
+	git_object* obj_commit;
+	git_object_lookup(&obj_commit,repo,git_commit_id(remote_commit),GIT_OBJ_COMMIT);
+
+	git_tag_create(
+			&oid_tag,
+			repo,
+			"last_common",
+			obj_commit,
+			sig,
+			"local commit only",
+			true
+			);
+
+	git_object_free(obj_commit);
 	git_tree_free(tree);
 
 	if (head)
@@ -276,54 +333,6 @@ std::pair<bool, std::vector<MergeConflict> > GitOps::merge(
 		git_commit_free(common_commit);
 
 	return {err,merge_list};
-}
-
-int walk_cb(const char *root, const git_tree_entry *entry, void *dv) {
-	walk_data &d = *(walk_data*) dv;
-	git_object* obj=nullptr;
-	git_blob* blob=nullptr;
-	git_tree_entry_to_object(&obj,d.repo,entry);
-	//filename associated with blob
-	std::string filename = git_tree_entry_name(entry);
-	if (git_blob_lookup(&blob,d.repo,git_object_id(obj))) {
-		git_object_free(obj);
-		git_blob_free(blob);
-		return 0;
-	}
-	const void* content_ptr=git_blob_rawcontent(blob);
-	git_object_free(obj);
-
-	std::string output((const char*)content_ptr);
-
-	FileIO io;
-
-	if (!filename.substr(0,3).compare("rm_")) {
-		int ext_loc = filename.find(".txt");
-		assert(ext_loc!=std::string::npos);
-		std::string id_str = filename.substr(3,ext_loc);
-		model::id_type id = parse_id(id_str);
-		model::room_t rm = io.loadRoomFromText(output);
-		d.world.rooms[id]=rm;
-	} else if (!filename.compare("world.txt")) {
-		model::world_t w = io.loadWorldFromText(output);
-		w.rooms=d.world.rooms;
-		d.world=w;
-	}
-
-	//git_buf_free(&buf);
-	git_blob_free(blob);
-	return 0;
-}
-
-model::world_t GitOps::modelFromCommit(git_commit* com) {
-	model::world_t world;
-	if (!com)
-		return world;
-	git_tree* tree;
-	git_commit_tree(&tree, com);
-	walk_data d = {world,repo};
-	git_tree_walk(tree, GIT_TREEWALK_PRE, &walk_cb, &d);
-	return world;
 }
 
 void GitOps::push(context::context_t& context) {
@@ -342,14 +351,15 @@ git_tree* GitOps::setStaged(std::vector<std::string> paths) {
 		git_commit_free(head);
 
 	/* Add some entries */
-	git_object *obj = NULL;
 	for (auto path : paths) {
-		git_revparse_single(&obj, repo, std::string("HEAD:"+path).c_str());
-		git_treebuilder_insert(NULL, bld,
-			   path.c_str(),        /* filename */
-			   git_object_id(obj), /* OID */
-			   GIT_FILEMODE_BLOB); /* mode */
-		git_object_free(obj);
+		git_oid oid;
+		//create blob, then add to tree:
+		assert(!git_blob_create_fromdisk(&oid, repo, path.c_str()));
+		std::string filename=FileIO::getFilename(path);
+		git_treebuilder_insert(nullptr, bld,
+			   filename.c_str(),
+			   &oid, /* OID */
+			   GIT_FILEMODE_BLOB);  /* mode */
 	}
 
 	git_oid oid;
@@ -387,20 +397,22 @@ git_commit* GitOps::getFetchCommit() {
 }
 
 bool GitOps::commonHistoryExists(context::context_t& context) {
-	return getCommon(context)!=nullptr;
+	git_commit* commit=getCommon(context);
+	if (commit) {
+		git_commit_free(commit);
+		return true;
+	}
+	return false;
 }
 
 git_commit* GitOps::getCommon(context::context_t& context) {
-	if (context.common_commit_oid.c_str()&&context.common_commit_oid.size()) {
-		git_oid oid;
-		if (git_oid_fromstrn(&oid, context.common_commit_oid.c_str(),context.common_commit_oid.size()))
-			goto standard;
-		git_commit* common=nullptr;
-		git_commit_lookup(&common,repo,&oid);
+	git_tag* last_common=getTagFromName("last_common");
+	if (last_common) {
+		git_commit* common;
+		git_commit_lookup(&common,repo,git_tag_target_id(last_common));
+		git_tag_free(last_common);
 		return common;
 	}
-
-	standard:
 
 	git_commit* const local = getHead();
 	git_commit* const remote = getFetchCommit();
@@ -620,8 +632,35 @@ void GitOps::setOrigin(context::context_t context) {
 
 void GitOps::clear() {
 	git_repository_free(repo);
-	system(std::string("rm -rf "+repo_dir).c_str());
+	FileIO::deletePath(repo_dir);
 	init();
+}
+
+typedef struct {
+
+git_oid found_oid;
+bool found=false;
+
+} tag_data;
+
+int each_tag(const char *name, git_oid *oid, void *payload)
+	{
+	  tag_data *d = (tag_data*) payload;
+	  if (!std::string(name).compare("refs/tags/last_common")) {
+		  d->found_oid=*oid;
+		  d->found=true;
+	  }
+	  return 0;
+	}
+
+git_tag* GitOps::getTagFromName(std::string name) {
+	tag_data d;
+	int error = git_tag_foreach(repo, each_tag, &d);
+	if (!d.found)
+		return nullptr;
+	git_tag* tag=nullptr;
+	git_tag_lookup(&tag,repo,&d.found_oid);
+	return tag;
 }
 
 void GitOps::merge_bool(bool& result, bool common, bool remote, bool local, merge_style style, bool& error,

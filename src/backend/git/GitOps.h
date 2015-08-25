@@ -12,6 +12,8 @@
 #include <utility>
 #include <vector>
 
+struct git_tag;
+
 namespace gyoa {
 namespace model {
 struct id_type;
@@ -122,6 +124,8 @@ private:
 	//! retrieves latest common ancestor between fetch and head
 	git_commit* getCommon(context::context_t&);
 
+	git_tag* getTagFromName(std::string name);
+
 	//! retrieves origin
 	git_remote * getOrigin(context::context_t&);
 
@@ -131,9 +135,11 @@ private:
 	//! merges two strings
 	void merge_string(std::string& result, std::string common, std::string remote, std::string local, merge_style,
 			bool& error, std::vector<MergeConflict>& merge_list, std::string error_description);
+
 	//! merges two id_types
 	void merge_id(model::id_type& result, model::id_type common, model::id_type remote, model::id_type local,
 			merge_style merge_style, bool& error, std::vector<MergeConflict>& merge_list, std::string error_description);
+
 	//! merges two bools
 	void merge_bool(bool& result, bool common, bool remote, bool local, merge_style, bool& error,
 			std::vector<MergeConflict>& merge_list, std::string error_description);

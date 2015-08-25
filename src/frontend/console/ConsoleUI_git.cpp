@@ -131,7 +131,7 @@ bool ConsoleUI::pullAndMerge() {
 			style = ops::MANUAL;
 			break;
 		case 'l':
-			print("Using local versions to resolve conflicts. How assertive.");
+			print("Using local versions to resolve conflicts. Very assertive.");
 			style = ops::USE_LOCAL;
 			break;
 		case 'w':

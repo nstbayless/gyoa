@@ -46,10 +46,9 @@ void Operation::setDataDirectory(std::string dir) {
 }
 
 model::world_t Operation::loadWorld(bool autogen) {
-	FileIO io;
 	try {
 	load_result=true;
-	return io.loadWorld(data_dir+"world.txt");
+	return FileIO::loadWorld(data_dir+"world.txt");
 	} catch (FileNotFoundException e) {
 		load_result=false;
 		//no world exists; create one:
@@ -88,8 +87,7 @@ model::room_t& Operation::loadRoom(rm_id_t id) {
 			return model->rooms[id];
 	load_result=true;
 	//not found in model: load room from disk
-	FileIO io;
-	model->rooms[id]=io.loadRoom(rm_id_to_filename(id));
+	model->rooms[id]=FileIO::loadRoom(rm_id_to_filename(id));
 	return model->rooms[id];
 }
 
@@ -176,9 +174,8 @@ void gyoa::ops::Operation::editRoomDeadEnd(rm_id_t id, bool dead_end) {
 
 std::string Operation::saveRoom(rm_id_t id) {
 	checkModel();
-	FileIO io;
 	std::string file=rm_id_to_filename(id);
-	io.writeRoomToFile(loadRoom(id),file);
+	FileIO::writeRoomToFile(loadRoom(id),file);
 
 	//reset model-edited information:
 	loadRoom(id).edited=false;
@@ -187,9 +184,8 @@ std::string Operation::saveRoom(rm_id_t id) {
 }
 
 void Operation::saveWorld() {
-	FileIO io;
-	io.writeWorldToFile(*model,data_dir+"world.txt");
-	io.writeGitignore(data_dir+".gitignore.txt");;
+	FileIO::writeWorldToFile(*model,data_dir+"world.txt");
+	FileIO::writeGitignore(data_dir+".gitignore.txt");;
 
 	//reset model-edited information:
 	model->edited=false;
@@ -243,17 +239,15 @@ void Operation::clearModel() {
 }
 
 context::context_t Operation::loadContext() {
-	FileIO io;
 	try {
-	return io.loadContext(data_dir+"context.txt");
+	return FileIO::loadContext(data_dir+"context.txt");
 	} catch (FileNotFoundException e) {
 		return context::context_t();
 	}
 }
 
 void Operation::saveContext(context::context_t context) {
-	FileIO io;
-	io.writeContext(context,data_dir+"context.txt");
+	FileIO::writeContext(context,data_dir+"context.txt");
 }
 
 std::string Operation::rm_id_to_filename(rm_id_t id) {

@@ -27,9 +27,6 @@ struct context_t {
 	//! URL of origin
 	std::string upstream_url="";
 
-	//! if this is non-empty, will be used as the last-common-commit for merging
-	std::string common_commit_oid="";
-
 	//! current room being viewed in play mode
 	model::rm_id_t current_room=model::id_type::null();
 };

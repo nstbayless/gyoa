@@ -24,14 +24,24 @@
 
 using namespace gyoa;
 
-FileIO::FileIO() {
-
+std::vector<std::string> gyoa::FileIO::getAllFiles(std::string directory) {
+	using namespace boost::filesystem;
+	path p(directory);
+	std::vector<std::string> to_return;
+	directory_iterator end_itr;
+	for (directory_iterator iter(p); iter != end_itr; ++iter) {
+		// If it's not a directory, list it.
+		if (is_regular_file(iter->path()))
+			to_return.push_back(boost::filesystem::canonical(iter->path()).string());
+	}
+	return to_return;
 }
 
-FileIO::~FileIO() {
+void gyoa::FileIO::deletePath(std::string path_str) {
+	boost::filesystem::remove_all(boost::filesystem::path(path_str));
 }
 
-void FileIO::writeRoomToFile(model::room_t rm, std::string fname) const {
+void FileIO::writeRoomToFile(model::room_t rm, std::string fname) {
 	using namespace rapidxml;
 
 	xml_document<> doc;
@@ -86,7 +96,7 @@ void FileIO::writeRoomToFile(model::room_t rm, std::string fname) const {
 	myfile.close();
 }
 
-model::room_t FileIO::loadRoom(std::string filename) const  {
+model::room_t FileIO::loadRoom(std::string filename)  {
 
 	std::ifstream file(filename);
 	if (!file.good())
@@ -98,7 +108,7 @@ model::room_t FileIO::loadRoom(std::string filename) const  {
 	return loadRoomFromText(content);
 }
 
-model::room_t gyoa::FileIO::loadRoomFromText(std::string text) const {
+model::room_t gyoa::FileIO::loadRoomFromText(std::string text) {
 	using namespace rapidxml;
 	model::room_t rm_import;
 	xml_document<> doc;
@@ -249,11 +259,6 @@ void gyoa::FileIO::writeContext(context::context_t context,
 	rm->append_attribute(doc.allocate_attribute("id", id.c_str()));
 	root->append_node(rm);
 
-	//write common-commit
-	xml_node<>* commit = doc.allocate_node(node_element, "common_commit");
-	commit->append_attribute(doc.allocate_attribute("id", context.common_commit_oid.c_str()));
-	root->append_node(commit);
-
 	//write the doc to a file
 	std::ofstream myfile;
 	myfile.open(filename);
@@ -282,7 +287,9 @@ context::context_t gyoa::FileIO::loadContext(std::string filename) {
 			nd_ct->first_node("upstream")->first_attribute("text")->value();
 	context.current_room = parse_id(
 			nd_ct->first_node("current_room")->first_attribute("id")->value());
-	context.common_commit_oid =
-			nd_ct->first_node("common_commit")->first_attribute("id")->value();
 	return context;
+}
+
+std::string gyoa::FileIO::getFilename(std::string filepath) {
+	return boost::filesystem::path(filepath).filename().string();
 }
