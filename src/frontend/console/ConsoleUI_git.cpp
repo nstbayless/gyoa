@@ -5,8 +5,11 @@
  *      Author: n
  */
 
+#include <unistd.h>
 #include <cassert>
 #include <string>
+#include <cstdlib>
+#include <iostream>
 #include <vector>
 
 #include "../../backend/git/GitOps.h"
@@ -20,6 +23,7 @@ void ConsoleUI::editGit() {
 	assert(mode==EDIT_GIT);
 	print_help();
 	std::string s;
+	ops::push_cred cred;
 	while (true) {
 		switch (input()) {
 		case 'q':
@@ -81,8 +85,36 @@ void ConsoleUI::editGit() {
 				s="Default commit message.";
 			ops.gitOps.init();
 			ops.gitOps.commit(context,s);
-			if (pullAndMerge())
-				ops.gitOps.push(context);
+			print("Merging before upload...");
+			if (pullAndMerge()) {
+				//get credentials before push:
+				if (!context.upstream_url.substr(0, 4).compare("http")) {
+					//using https
+					print("Please enter username for " + context.upstream_url);
+					std::string username = inputString();
+					print("Please enter password");
+					std::string password = getpass("> ");
+					cred = ops::make_push_cred_plaintext(username, password);
+				} else {
+					//todo: ssh
+					assert(false);
+				}
+				//push:
+				print ("Enter to kill");
+				ops.gitOps.push(context, cred, [](void* varg)->bool {
+					ConsoleUI* ui = (ConsoleUI*)varg;
+					while (true) {
+						ui->input();
+						return true;
+					}
+				}, [](bool success,void* varg) {
+					ConsoleUI* ui = (ConsoleUI*)varg;
+					if (success)
+						ui->print("push successful! Press [enter] to continue.");
+					else
+						ui->print("push failure");
+				},this);
+			}
 			else
 				print("Merge failed, not uploading local changes.");
 			print("\nType [h] for help.");
@@ -119,7 +151,7 @@ bool ConsoleUI::pullAndMerge() {
 	assert(!ops.savePending());
 	ops.gitOps.fetch(context);
 	ops::merge_style style = ops::MANUAL;
-	if (ops.gitOps.merge(ops::TRIAL_RUN,ops,context).first) {
+	if (ops.gitOps.merge(ops::TRIAL_RUN,ops,context).conflict_occurred()) {
 		print(	"Conflicts exist between your version and the remote version. How should this be handled?\n"
 						"[a]   abort, nothing is changed.\n"
 						"[m]   handle conflicts manually (this might take you a while).\n"
@@ -146,9 +178,11 @@ bool ConsoleUI::pullAndMerge() {
 
 	auto result = ops.gitOps.merge(style,ops,context);
 
-	if (style==ops::MANUAL)
-		print(std::to_string(result.second.size())+" conflicts found.");
-	for (auto conflict : result.second) {
+	print(std::to_string(result.resolved) + " conflicts resolved.");
+	print(std::to_string(result.changes) + " changes made in all.");
+	if (style==ops::MANUAL&&result.conflicts.size())
+		print(std::to_string(result.conflicts.size())+" conflicts unresolved.");
+	for (auto conflict : result.conflicts) {
 		user_failed:
 		print("\nConflict: " + conflict.description);
 		print("\n"

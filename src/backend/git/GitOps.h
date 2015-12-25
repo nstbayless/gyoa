@@ -50,18 +50,61 @@ enum merge_style {
 	TRIAL_RUN,		//!< do not merge, do not update common history, error returned if conflict exists
 };
 
+//! Represents a single instance of a conflict between the server and client
 struct MergeConflict {
+	//! what type of data conflicted?
 	enum {
 		STRING,
 		ID,
 		BOOL,
 	} data_type;
+	//! description of the conflict
 	std::string description="";
+
+	//! [data] version from common ancestor commit
 	std::string common;
+
+	//! [data] version from remote (server) commit
 	std::string remote;
+
+	//! [data] version from local commit
 	std::string local;
+
+	//! pointer to data where change should be made.
 	void* data_ptr;
 };
+
+//! returned by a call to GitOps::Merge
+struct MergeResult {
+	//! list of conflicts with pointers to data to be manually resolved
+	std::vector<MergeConflict> conflicts;
+
+	//! number of times a conflict was automatically resolved
+	int resolved=0;
+
+	//! number of changes made to the local model
+	int changes=0;
+
+	bool conflict_occurred(){
+		return resolved>0||conflicts.size();
+	}
+};
+
+struct push_cred {
+	enum {
+		USERNAME,	//!< just a username [a]
+		PLAINTEXT,	//!< username [a] and password [b]
+		SSH,		//!< path to private ssh key [a] and public [b] and username [c] and passphrase [d]
+	} credtype;
+	std::string cred_a="";
+	std::string cred_b="";
+	std::string cred_c="";
+	std::string cred_d="";
+};
+
+push_cred make_push_cred_username(std::string username);
+push_cred make_push_cred_plaintext(std::string username, std::string password);
+push_cred make_push_cred_ssh(std::string path_to_privkey, std::string path_to_pubkey, std::string username, std::string passphrase);
 
 /**synchronizes using git.
  * Presently invokes git via system calls; this shall be replaced with a library in the future.*/
@@ -107,10 +150,14 @@ public:
 	//! updates data model in memory, so Operation.reload() is not necessary.
 	//! returns pair (bool error?, list of conflicts for user to resolve,
 	//! or empty list if mergy style is not MANUAL)
-	std::pair<bool,std::vector<MergeConflict>> merge(merge_style,ops::Operation& ops,context::context_t&);
+	MergeResult merge(merge_style,ops::Operation& ops,context::context_t&);
 
-	//! pushes commits to origin.
-	void push(context::context_t&);
+	//! pushes commits to origin, returns true if successful
+	//! push_kill_callback is a function that returns 1 to cancel the push.
+	//! interrupt: completed_callback() called when git disconnects from server,
+	//! success is true if succesfully pushed.
+	//! varg: supplied to callbacks
+	bool push(context::context_t&,push_cred credentials,bool (*push_kill_callback)(void*)=[](void*){return false;},void completed_callback(bool success,void*)=[](bool,void*){return;},void* varg=nullptr);
 private:
 	//! tree for current revisions. Similar to git add --all.
 	git_tree * setStaged(std::vector<std::string> paths);
@@ -134,15 +181,15 @@ private:
 
 	//! merges two strings
 	void merge_string(std::string& result, std::string common, std::string remote, std::string local, merge_style,
-			bool& error, std::vector<MergeConflict>& merge_list, std::string error_description);
+			MergeResult& log, std::string error_description);
 
 	//! merges two id_types
 	void merge_id(model::id_type& result, model::id_type common, model::id_type remote, model::id_type local,
-			merge_style merge_style, bool& error, std::vector<MergeConflict>& merge_list, std::string error_description);
+			merge_style style, MergeResult& log, std::string error_description);
 
 	//! merges two bools
-	void merge_bool(bool& result, bool common, bool remote, bool local, merge_style, bool& error,
-			std::vector<MergeConflict>& merge_list, std::string error_description);
+	void merge_bool(bool& result, bool common, bool remote, bool local, merge_style,
+			MergeResult& log, std::string error_description);
 private:
 	std::string repo_dir;
 	git_repository* repo=nullptr;

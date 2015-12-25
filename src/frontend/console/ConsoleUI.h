@@ -25,10 +25,14 @@ public:
 
 	//! starts ui loop
 	void start();
-private:
+public:
+	//! gets input from user
+	char input(bool prompt=true);
+
 	//! prints message to user
 	void print(std::string);
 
+private:
 	//! prints help command to user
 	void print_help();
 
@@ -41,9 +45,6 @@ private:
 	//! allows user to edit text by a system call to nano.
 	//! input: original text. output: new text.
 	std::string edit_text(std::string);
-
-	//! gets input from user
-	char input(bool prompt=true);
 
 	//! gets string input from user
 	std::string inputString(bool prompt=true);

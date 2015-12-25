@@ -4,5 +4,5 @@
 
 USER_OBJS :=
 
-LIBS := -lgit2 -lboost_filesystem -lboost_system
+LIBS := -lgit2 -lboost_filesystem -lboost_system -lpthread
 
