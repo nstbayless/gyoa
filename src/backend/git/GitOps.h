@@ -114,7 +114,7 @@ public:
 	~GitOps();
 
 	//! Sets the directory which will be used to store the git repository.
-	//! This should not be invoked after any the repository has already been initialized.
+	//! This should not be invoked after init has been called
 	void setLocalRepoDirectory(std::string);
 
 	//! Retrieves directory in which local git repo is stored.
@@ -141,6 +141,7 @@ public:
 	//! commits all staged edits with the given commit message.
 	void commit(context::context_t&,std::string message);
 
+	//! fetches changes, but does not update world.
 	void fetch(context::context_t&);
 
 	//! returns true if common history exists with most recently-fetched branch
@@ -159,6 +160,9 @@ public:
 	//! varg: supplied to callbacks
 	bool push(context::context_t&,push_cred credentials,bool (*push_kill_callback)(void*)=[](void*){return false;},void completed_callback(bool success,void*)=[](bool,void*){return;},void* varg=nullptr);
 private:
+	/** pushes directly; provides no means for interrupt*/
+	bool push_direct(context::context_t& context, push_cred credentials,bool* kill);
+private:
 	//! tree for current revisions. Similar to git add --all.
 	git_tree * setStaged(std::vector<std::string> paths);
 
@@ -174,7 +178,7 @@ private:
 	git_tag* getTagFromName(std::string name);
 
 	//! retrieves origin
-	git_remote * getOrigin(context::context_t&);
+	git_remote* getOrigin(context::context_t&);
 
 	//! constructs a model matching the state of the world at the given commit
 	model::world_t modelFromCommit(git_commit*);

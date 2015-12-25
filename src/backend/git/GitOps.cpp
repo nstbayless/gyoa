@@ -145,14 +145,13 @@ void GitOps::commit(context::context_t& context,std::string message) {
 		parents[parent_count++]=head;
 
 	std::vector<std::string> paths=FileIO::getAllFiles(repo_dir);
-	//todo: add paths
 
 	git_tree* tree = setStaged(paths);
 
-	git_oid oid;
+	git_oid oid_for_commit;
 
 	git_commit_create(
-	  &oid,
+	  &oid_for_commit,
 	  repo,
 	  "HEAD",						/* name of ref to update */
 	  sig,							/* author */
@@ -178,6 +177,7 @@ void GitOps::fetch(context::context_t& context) {
 		NULL, /* refspecs, NULL to use the configured ones */
 		&opts, /* options, empty for defaults */
 		NULL); /* reflog mesage, usually "fetch" or "pull", you can leave it NULL for "fetch" */
+	git_remote_free(origin);
 }
 
 MergeResult GitOps::merge(
@@ -329,7 +329,7 @@ MergeResult GitOps::merge(
 			"last_common",
 			obj_commit,
 			sig,
-			"local commit only",
+			"local tag only",
 			true
 			);
 
@@ -409,10 +409,16 @@ int cert_check_cb(git_cert* cert, int valid, const char* host, void* payload){
 	return 1;
 }
 
-bool push_helper(git_remote* remote, push_cred credentials,bool* kill){
+bool GitOps::push_direct(context::context_t& context,push_cred credentials,bool* kill){
 	cred_payload payload={credentials,kill};
-	git_strarray push_refspecs = {0};
-	git_remote_get_push_refspecs(&push_refspecs, remote);
+	git_remote* remote = getOrigin(context);
+	git_strarray refspecs;
+	git_remote_get_push_refspecs(&refspecs,remote);
+	if (refspecs.count==0)
+		//add default refspec
+		git_remote_add_push(repo,git_remote_name(remote), "refs/heads/master:refs/heads/master");
+	git_remote_free(remote);
+	remote=getOrigin(context);
 	git_push_options opts;
 	git_push_init_options(&opts,GIT_PUSH_OPTIONS_VERSION);
 	git_remote_init_callbacks(&opts.callbacks,GIT_REMOTE_CALLBACKS_VERSION);
@@ -424,18 +430,21 @@ bool push_helper(git_remote* remote, push_cred credentials,bool* kill){
 	opts.callbacks.push_negotiation=push_negotiation_cb;
 	opts.callbacks.pack_progress=packbuilder_progress_cb;
 	opts.callbacks.transfer_progress=transfer_progress_cb;
-	return !git_remote_push(remote,&push_refspecs,&opts);
+	git_remote_get_push_refspecs(&refspecs,remote);
+	std::cout<<"refspecs:\n";
+	bool to_return = !git_remote_push(remote,&refspecs,&opts);
+	git_remote_free(remote);
+	return to_return;
 }
 
 bool GitOps::push(context::context_t& context, push_cred credentials,bool (*push_kill_callback)(void*), void (*disconnect_interrupt)(bool,void*),void* varg) {
-	git_remote* remote = getOrigin(context);
 	//set to zero if t_helper returns, 1 if t_kill returns
 	bool completed=false;
 	bool returnval[2]={false,false};
 	bool kill=false;
 
 	std::thread t_helper([&]{
-		returnval[0]= push_helper(remote,credentials,&kill);
+		returnval[0]= push_direct(context,credentials,&kill);
 		disconnect_interrupt(returnval[0],varg);
 	});
 
@@ -456,6 +465,23 @@ bool GitOps::push(context::context_t& context, push_cred credentials,bool (*push
 }
 
 git_tree* GitOps::setStaged(std::vector<std::string> paths) {
+
+	/*git_index* index;
+	git_repository_index(&index, repo);
+	//add paths to index:
+	for (std::string path : paths) {
+		git_index_add_bypath(index, path.c_str());
+	}
+
+	git_oid tree_oid;
+	git_tree* tree;
+	git_index_write_tree(&tree_oid, index);
+	git_tree_lookup(&tree, repo, &tree_oid);
+
+	git_index_free(index);
+
+	return tree;*/
+
 	git_treebuilder* bld = nullptr;
 	git_tree* src=nullptr;
 	git_commit* head = getHead();
@@ -466,7 +492,7 @@ git_tree* GitOps::setStaged(std::vector<std::string> paths) {
 	if (head)
 		git_commit_free(head);
 
-	/* Add some entries */
+	// Add some entries
 	for (auto path : paths) {
 		git_oid oid;
 		//create blob, then add to tree:
@@ -474,8 +500,8 @@ git_tree* GitOps::setStaged(std::vector<std::string> paths) {
 		std::string filename=FileIO::getFilename(path);
 		git_treebuilder_insert(nullptr, bld,
 			   filename.c_str(),
-			   &oid, /* OID */
-			   GIT_FILEMODE_BLOB);  /* mode */
+			   &oid, // OID
+			   GIT_FILEMODE_BLOB);  // mode
 	}
 
 	git_oid oid;
@@ -600,7 +626,7 @@ git_commit* GitOps::getCommon(context::context_t& context) {
 
 void GitOps::setOrigin(context::context_t context) {
 	//method sets origin if not pre-existing
-	getOrigin(context);
+	git_remote_free(getOrigin(context));
 }
 
 void GitOps::clear() {
