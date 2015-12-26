@@ -4,13 +4,13 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../src/backend/model/Read.cpp 
+../src/backend/model/World.cpp 
 
 OBJS += \
-./src/backend/model/Read.o 
+./src/backend/model/World.o 
 
 CPP_DEPS += \
-./src/backend/model/Read.d 
+./src/backend/model/World.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

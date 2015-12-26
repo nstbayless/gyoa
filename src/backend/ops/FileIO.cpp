@@ -47,7 +47,7 @@ void gyoa::FileIO::deletePath(std::string path_str) {
 	boost::filesystem::remove_all(boost::filesystem::path(path_str));
 }
 
-void FileIO::writeRoomToFile(model::room_t rm, std::string fname) {
+void FileIO::writeRoomToFile(const model::room_t rm, std::string fname) {
 	using namespace rapidxml;
 
 	xml_document<> doc;
@@ -140,7 +140,7 @@ model::room_t gyoa::FileIO::loadRoomFromText(std::string text) {
 	return rm_import;
 }
 
-void gyoa::FileIO::writeWorldToFile(gyoa::model::world_t& world,
+void gyoa::FileIO::writeWorldToFile(const gyoa::model::world_t& world,
 		std::string filename) {
 	using namespace rapidxml;
 
@@ -341,4 +341,8 @@ context::context_t gyoa::FileIO::loadContext(std::string filename) {
 
 std::string gyoa::FileIO::getFilename(std::string filepath) {
 	return boost::filesystem::path(filepath).filename().string();
+}
+
+bool gyoa::FileIO::fileExists(std::string path) {
+	return boost::filesystem::exists(path);
 }

@@ -16,6 +16,9 @@
 #include "../../backend/ops/Operation.h"
 
 namespace gyoa {
+namespace gitops {
+struct push_cred;
+}
 namespace ui {
 
 class ConsoleUI {
@@ -63,7 +66,7 @@ private:
 
 	//! retrieves git authentication credentials from user
 	//! returns 0 on success, 1 on abort.
-	int getCredentials(ops::push_cred&);
+	int getCredentials(gitops::push_cred&);
 
 	//! pulls and merges, asks user for input if there are conflicts.
 	//! All changes should be committed first.
@@ -73,16 +76,17 @@ private:
 	//! first fetches without authentication. Then attempts
 	//! by asking user for cred.
 	//! overwrites cred with credentials attained if possible
-	bool tryFetch(ops::push_cred* cred=nullptr);
+	bool tryFetch(gitops::push_cred* cred=nullptr);
 
 	//! allows user to play game.
 	void playCurrentRoom();
+
+	//! if context.current_room.is_null() then fix.
+	//! returns true if switching mode.
+	bool FixContextIfRoomIsNull();
 private:
 	//! model stores information about all rooms
-	model::world_t model;
-
-	//! modifies model
-	ops::Operation ops;
+	model::ActiveModel* am=nullptr;
 
 	enum {
 		EDIT_ROOM, EDIT_OPTIONS, EDIT_GIT, PLAY, META, QUIT

@@ -18,6 +18,7 @@ namespace gyoa {
 namespace model {
 struct id_type;
 struct world_t;
+struct ActiveModel;
 } /* namespace model */
 namespace ops {
 class Operation;
@@ -38,7 +39,7 @@ namespace gyoa {
 namespace context {
 struct context_t;
 } /* namespace context */
-namespace ops {
+namespace gitops {
 
 //! method with which to resolve conflicts when merging
 enum merge_style {
@@ -106,104 +107,99 @@ push_cred make_push_cred_username(std::string username);
 push_cred make_push_cred_plaintext(std::string username, std::string password);
 push_cred make_push_cred_ssh(std::string path_to_privkey, std::string path_to_pubkey, std::string username, std::string passphrase);
 
-/**synchronizes using git.
- * Presently invokes git via system calls; this shall be replaced with a library in the future.*/
-class GitOps {
-public:
-	GitOps();
-	~GitOps();
+void gitInit();
+void gitShutdown();
 
-	//! Sets the directory which will be used to store the git repository.
-	//! This should not be invoked after init has been called
-	void setLocalRepoDirectory(std::string);
+//! returns true if the repo already is a repository (and is root of repo)
+bool isRepo(gyoa::model::ActiveModel*);
 
-	//! Retrieves directory in which local git repo is stored.
-	std::string getLocalRepoDirectory();
+//! initializes git repository in repo_dir
+void open(gyoa::model::ActiveModel*);
 
-	//! sets the fetch/pull origin
-	void setOrigin(context::context_t context);
+//! initializes empty git repository in repo_dir
+void init(gyoa::model::ActiveModel*);
 
-	//! returns true if repo_dir already is a repository (and is root of repo)
-	bool isRepo();
+//! erases git directory
+void obliterate(gyoa::model::ActiveModel*);
 
-	//! initializes git repository in repo_dir
-	void open();
+//! clones git repo from upstream url to repo_dir
+void clone(gyoa::model::ActiveModel*,context::context_t&);
 
-	//! initializes empty git repository in repo_dir
-	void init();
+//! commits all saved edits with the given commit message.
+void stageAndCommit(gyoa::model::ActiveModel*,context::context_t&,std::string message);
 
-	//! deletes the git repository, including files
-	void clear();
+//! fetches changes, but does not update world.
+//! returns false if error, true on success
+//! credentials used to authenticate connection
+bool fetch(gyoa::model::ActiveModel*,context::context_t&, push_cred credentials);
 
-	//! clones git repo from upstream url to repo_dir
-	void clone(context::context_t&);
+//! fetches changes, but does not update world.
+//! returns false if error, true on success
+bool fetch(gyoa::model::ActiveModel*,context::context_t&);
 
-	//! commits all staged edits with the given commit message.
-	void commit(context::context_t&,std::string message);
+//! returns true if common history exists with most recently-fetched branch
+bool commonHistoryExists(gyoa::model::ActiveModel*,context::context_t&);
 
-	//! fetches changes, but does not update world.
-	//! returns false if error, true on success
-	//! credentials used to authenticate connection
-	bool fetch(context::context_t&, push_cred credentials);
+//! Merges in fetched changes (from fetch()).
+//! updates data model in memory, so Operation.reload() is not necessary.
+//! returns pair (bool error?, list of conflicts for user to resolve,
+//! or empty list if mergy style is not MANUAL)
+MergeResult merge(gyoa::model::ActiveModel*,merge_style,context::context_t&);
 
-	//! fetches changes, but does not update world.
-	//! returns false if error, true on success
-	bool fetch(context::context_t&);
+//! pushes commits to origin, returns true if successful
+//! push_kill_callback is a function that returns 1 to cancel the push.
+//! interrupt: completed_callback() called when git disconnects from server,
+//! success is true if succesfully pushed.
+//! varg: supplied to callbacks
+bool push(gyoa::model::ActiveModel*,context::context_t&,push_cred credentials,bool (*push_kill_callback)(void*)=[](void*){return false;},void completed_callback(bool success,void*)=[](bool,void*){return;},void* varg=nullptr);
 
-	//! returns true if common history exists with most recently-fetched branch
-	bool commonHistoryExists(context::context_t&);
+//=====================INTERNAL METHODS=====================//
 
-	//! Merges in fetched changes (from fetch()).
-	//! updates data model in memory, so Operation.reload() is not necessary.
-	//! returns pair (bool error?, list of conflicts for user to resolve,
-	//! or empty list if mergy style is not MANUAL)
-	MergeResult merge(merge_style,ops::Operation& ops,context::context_t&);
+/** pushes directly; provides no means for interrupt
+ *  INTERNAL*/
+bool push_direct(gyoa::model::ActiveModel*,context::context_t& context, push_cred credentials,bool* kill);
 
-	//! pushes commits to origin, returns true if successful
-	//! push_kill_callback is a function that returns 1 to cancel the push.
-	//! interrupt: completed_callback() called when git disconnects from server,
-	//! success is true if succesfully pushed.
-	//! varg: supplied to callbacks
-	bool push(context::context_t&,push_cred credentials,bool (*push_kill_callback)(void*)=[](void*){return false;},void completed_callback(bool success,void*)=[](bool,void*){return;},void* varg=nullptr);
-private:
-	/** pushes directly; provides no means for interrupt*/
-	bool push_direct(context::context_t& context, push_cred credentials,bool* kill);
-private:
-	//! tree for current revisions. Similar to git add --all.
-	git_tree * setStaged(std::vector<std::string> paths);
+//! tree for current revisions. Similar to git add --all.
+//! INTERNAL
+git_tree * setStaged(gyoa::model::ActiveModel*,std::vector<std::string> paths);
 
-	//! retrieves head commit, or nullptr. Don't forget to free.
-	git_commit * getHead();
+//! retrieves head commit, or nullptr. Don't forget to free.
+//! INTERNAL
+git_commit * getHead(gyoa::model::ActiveModel*);
 
-	//! retrieves last fetched commit.
-	git_commit* getFetchCommit();
+//! retrieves last fetched commit.
+//! INTERNAL
+git_commit* getFetchCommit(gyoa::model::ActiveModel*);
 
-	//! retrieves latest common ancestor between fetch and head
-	git_commit* getCommon(context::context_t&);
+//! retrieves latest common ancestor between fetch and head
+//! INTERNAL
+git_commit* getCommon(gyoa::model::ActiveModel*,context::context_t&);
 
-	git_tag* getTagFromName(std::string name);
+//! INTERNAL
+git_tag* getTagFromName(gyoa::model::ActiveModel*,std::string name);
 
-	//! retrieves origin
-	git_remote* getOrigin(context::context_t&);
+//! retrieves origin
+//! INTERNAL
+git_remote* getOrigin(gyoa::model::ActiveModel*,context::context_t&);
 
-	//! constructs a model matching the state of the world at the given commit
-	model::world_t modelFromCommit(git_commit*);
+//! constructs a model matching the state of the world at the given commit
+//! INTERNAL
+model::world_t modelFromCommit(gyoa::model::ActiveModel*,git_commit*);
 
-	//! merges two strings
-	void merge_string(std::string& result, std::string common, std::string remote, std::string local, merge_style,
-			MergeResult& log, std::string error_description);
+//! merges two strings
+//! INTERNAL
+void merge_string(std::string& result, std::string common, std::string remote, std::string local, merge_style,
+		MergeResult& log, std::string error_description);
 
-	//! merges two id_types
-	void merge_id(model::id_type& result, model::id_type common, model::id_type remote, model::id_type local,
-			merge_style style, MergeResult& log, std::string error_description);
+//! merges two id_types
+//! INTERNAL
+void merge_id(model::id_type& result, model::id_type common, model::id_type remote, model::id_type local,
+		merge_style style, MergeResult& log, std::string error_description);
 
-	//! merges two bools
-	void merge_bool(bool& result, bool common, bool remote, bool local, merge_style,
-			MergeResult& log, std::string error_description);
-private:
-	std::string repo_dir;
-	git_repository* repo=nullptr;
-};
+//! merges two bools
+//! INTERNAL
+void merge_bool(bool& result, bool common, bool remote, bool local, merge_style,
+		MergeResult& log, std::string error_description);
 
 } /* namespace ops */
 } /* namespace gyoa */

@@ -82,6 +82,8 @@ struct room_t {
 	//! this room marks an "end" for the game.
 	bool dead_end=false;
 
+//non-model flags used for efficient loading/saving
+
 	//! if false, room will be loaded when accessed
 	bool loaded=true;
 

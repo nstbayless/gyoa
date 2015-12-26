@@ -39,17 +39,7 @@
 #include "../ops/Operation.h"
 
 namespace gyoa {
-namespace ops {
-
-GitOps::GitOps() {
-	git_libgit2_init();
-}
-
-GitOps::~GitOps() {
-	if (repo)
-		git_repository_free(repo);
-	git_libgit2_shutdown();
-}
+namespace gitops {
 
 struct walk_data {
 	model::world_t& world;
@@ -91,53 +81,77 @@ int walk_cb(const char *root, const git_tree_entry *entry, void *dv) {
 	return 0;
 }
 
-model::world_t GitOps::modelFromCommit(git_commit* com) {
+model::world_t modelFromCommit(gyoa::model::ActiveModel* am,git_commit* com) {
+	assert(am);
 	model::world_t world;
 	if (!com)
 		return world;
 	git_tree* tree;
 	git_commit_tree(&tree, com);
-	walk_data d = {world,repo};
+	walk_data d = {world,am->repo};
 	git_tree_walk(tree, GIT_TREEWALK_PRE, &walk_cb, &d);
 	return world;
 }
 
-void GitOps::setLocalRepoDirectory(std::string dir) {
-	repo_dir=dir;
-}
-
-std::string GitOps::getLocalRepoDirectory() {
-	return repo_dir;
-}
-
-bool GitOps::isRepo() {
+bool isRepo(gyoa::model::ActiveModel* am) {
+	assert(am);
+	std::string repo_dir = am->path;
 	return !git_repository_open_ext(NULL, repo_dir.c_str(),
 				GIT_REPOSITORY_OPEN_NO_SEARCH, nullptr);
 }
 
-void GitOps::open() {
+void open(gyoa::model::ActiveModel* am) {
+	assert(am);
+	std::string repo_dir = am->path;
+	git_repository* repo = am->repo;
 	if (git_repository_open_ext(&repo, repo_dir.c_str(),
 			GIT_REPOSITORY_OPEN_NO_SEARCH, nullptr))
 		throw GitNotRepo(repo_dir);
 }
 
-void GitOps::init() {
+void init(gyoa::model::ActiveModel* am) {
+	assert(am);
+	std::string repo_dir = am->path;
+	git_repository* repo = am->repo;
 	if (git_repository_init(&repo, repo_dir.c_str(), false))
 		throw GitInitFail(repo_dir);
 }
 
-void GitOps::clone(context::context_t& context) {
+void gitInit() {
+	git_libgit2_init();
+}
+
+void gitShutdown() {
+	git_libgit2_shutdown();
+}
+
+void obliterate(gyoa::model::ActiveModel* am) {
+	if (am->repo!=nullptr)
+		git_repository_free(am->repo);
+	am->repo=nullptr;
+	FileIO::deletePath(am->path+".git");
+}
+
+
+void clone(gyoa::model::ActiveModel* am,context::context_t& context) {
+	assert(am);
+	std::string repo_dir = am->path;
+	git_repository* repo = am->repo;
 	if (git_clone(&repo,context.upstream_url.c_str(),repo_dir.c_str(),nullptr));
 		throw GitCloneFail(repo_dir,context.upstream_url);
 }
 
 
-void GitOps::commit(context::context_t& context,std::string message) {
+void stageAndCommit(gyoa::model::ActiveModel* am,context::context_t& context,std::string message) {
+	assert(message.length());
+	assert(am);
+	std::string repo_dir = am->path;
+	git_repository* repo = am->repo;
 	git_signature* sig=nullptr;
 	git_signature_now(&sig, context.user_name.c_str(), context.user_email.c_str());
 
 	int parent_count=0;
-	git_commit* head = getHead();
+	git_commit* head = getHead(am);
 
 	const git_commit* parents[] = {nullptr};
 
@@ -146,7 +160,7 @@ void GitOps::commit(context::context_t& context,std::string message) {
 
 	std::vector<std::string> paths=FileIO::getAllFiles(repo_dir);
 
-	git_tree* tree = setStaged(paths);
+	git_tree* tree = setStaged(am,paths);
 
 	git_oid oid_for_commit;
 
@@ -232,8 +246,9 @@ int cert_check_cb(git_cert* cert, int valid, const char* host, void* payload){
 	return 1;
 }
 
-bool GitOps::fetch(context::context_t& context,push_cred credentials) {
-	git_remote* origin = getOrigin(context);
+bool fetch(gyoa::model::ActiveModel* am,context::context_t& context,push_cred credentials) {
+	assert(am);
+	git_remote* origin = getOrigin(am,context);
 	git_fetch_options opts = GIT_FETCH_OPTIONS_INIT;
 	opts.callbacks.credentials=cred_cb;
 	opts.callbacks.certificate_check=cert_check_cb;
@@ -251,26 +266,28 @@ bool GitOps::fetch(context::context_t& context,push_cred credentials) {
 	return to_return;
 }
 
-bool GitOps::fetch(context::context_t& context) {
+bool fetch(gyoa::model::ActiveModel* am,context::context_t& context) {
+	assert(am);
 	push_cred credentials=make_push_cred_username("");
-	return fetch(context,credentials);
+	return fetch(am,context,credentials);
 }
 
-MergeResult GitOps::merge(
-		merge_style style, ops::Operation& ops,context::context_t& context) {
+MergeResult merge(gyoa::model::ActiveModel* am,
+		merge_style style, context::context_t& context) {
+	assert(am);
 
-	git_commit* remote_commit = getFetchCommit();
-	git_commit* common_commit = getCommon(context);
+	git_commit* remote_commit = getFetchCommit(am);
+	git_commit* common_commit = getCommon(am,context);
 
-	assert(!ops.savePending());
-	ops.loadAll();
+	assert(!ops::savePending(am));
+	model::loadAllRooms(am);
 
 	MergeResult to_return;
 	std::vector<MergeConflict> merge_list;
 
-	model::world_t common=modelFromCommit(common_commit);
-	model::world_t remote=modelFromCommit(remote_commit);
-	model::world_t& local=*ops.model;
+	model::world_t common=modelFromCommit(am,common_commit);
+	model::world_t remote=modelFromCommit(am,remote_commit);
+	model::world_t& local=am->model;
 
 	//1. merge tmp (remote) model into parent (local) model
 	//2. save local model
@@ -362,13 +379,13 @@ MergeResult GitOps::merge(
 	}
 
 	//save changes
-	ops.saveAll(true);
+	ops::saveAll(am,true);
 
 	//commit
 	git_signature* sig=nullptr;
 	git_signature_now(&sig, context.user_name.c_str(), context.user_email.c_str());
 
-	git_commit* head = getHead();
+	git_commit* head = getHead(am);
 
 	int parent_n=0;
 
@@ -378,13 +395,13 @@ MergeResult GitOps::merge(
 	if (remote_commit)
 		parents[parent_n++]=remote_commit;
 
-	git_tree* tree = setStaged(FileIO::getAllFiles(repo_dir));
+	git_tree* tree = setStaged(am,FileIO::getAllFiles(am->path));
 
 	git_oid commit;
 
 	git_commit_create(
 	  &commit,
-	  repo,
+	  am->repo,
 	  "HEAD",						/* name of ref to update */
 	  sig,							/* author */
 	  sig,							/* committer */
@@ -397,11 +414,11 @@ MergeResult GitOps::merge(
 	git_oid oid_tag;
 
 	git_object* obj_commit;
-	git_object_lookup(&obj_commit,repo,git_commit_id(remote_commit),GIT_OBJ_COMMIT);
+	git_object_lookup(&obj_commit,am->repo,git_commit_id(remote_commit),GIT_OBJ_COMMIT);
 
 	git_tag_create(
 			&oid_tag,
-			repo,
+			am->repo,
 			"last_common",
 			obj_commit,
 			sig,
@@ -426,16 +443,17 @@ MergeResult GitOps::merge(
 	return to_return;
 }
 
-bool GitOps::push_direct(context::context_t& context,push_cred credentials,bool* kill){
+bool push_direct(gyoa::model::ActiveModel* am,context::context_t& context,push_cred credentials,bool* kill){
+	assert(am);
 	cred_payload payload={credentials,kill};
-	git_remote* remote = getOrigin(context);
+	git_remote* remote = getOrigin(am,context);
 	git_strarray refspecs;
 	git_remote_get_push_refspecs(&refspecs,remote);
 	if (refspecs.count==0)
 		//add default refspec
-		git_remote_add_push(repo,git_remote_name(remote), "refs/heads/master:refs/heads/master");
+		git_remote_add_push(am->repo,git_remote_name(remote), "refs/heads/master:refs/heads/master");
 	git_remote_free(remote);
-	remote=getOrigin(context);
+	remote=getOrigin(am,context);
 	git_push_options opts;
 	git_push_init_options(&opts,GIT_PUSH_OPTIONS_VERSION);
 	git_remote_init_callbacks(&opts.callbacks,GIT_REMOTE_CALLBACKS_VERSION);
@@ -453,14 +471,15 @@ bool GitOps::push_direct(context::context_t& context,push_cred credentials,bool*
 	return to_return;
 }
 
-bool GitOps::push(context::context_t& context, push_cred credentials,bool (*push_kill_callback)(void*), void (*disconnect_interrupt)(bool,void*),void* varg) {
+bool push(gyoa::model::ActiveModel* am,context::context_t& context, push_cred credentials,bool (*push_kill_callback)(void*), void (*disconnect_interrupt)(bool,void*),void* varg) {
+	assert(am);
 	//set to zero if t_helper returns, 1 if t_kill returns
 	bool completed=false;
 	bool returnval[2]={false,false};
 	bool kill=false;
 
 	std::thread t_helper([&]{
-		returnval[0]= push_direct(context,credentials,&kill);
+		returnval[0]= push_direct(am,context,credentials,&kill);
 		disconnect_interrupt(returnval[0],varg);
 	});
 
@@ -480,7 +499,7 @@ bool GitOps::push(context::context_t& context, push_cred credentials,bool (*push
 	return returnval[0];
 }
 
-git_tree* GitOps::setStaged(std::vector<std::string> paths) {
+git_tree* setStaged(gyoa::model::ActiveModel* am,std::vector<std::string> paths) {
 
 	/*git_index* index;
 	git_repository_index(&index, repo);
@@ -500,10 +519,10 @@ git_tree* GitOps::setStaged(std::vector<std::string> paths) {
 
 	git_treebuilder* bld = nullptr;
 	git_tree* src=nullptr;
-	git_commit* head = getHead();
+	git_commit* head = getHead(am);
 	if (head)
 		git_commit_tree(&src, head);
-	git_treebuilder_new(&bld, repo, src);
+	git_treebuilder_new(&bld, am->repo, src);
 	assert(bld);
 	if (head)
 		git_commit_free(head);
@@ -512,7 +531,7 @@ git_tree* GitOps::setStaged(std::vector<std::string> paths) {
 	for (auto path : paths) {
 		git_oid oid;
 		//create blob, then add to tree:
-		assert(!git_blob_create_fromdisk(&oid, repo, path.c_str()));
+		assert(!git_blob_create_fromdisk(&oid, am->repo, path.c_str()));
 		std::string filename=FileIO::getFilename(path);
 		git_treebuilder_insert(nullptr, bld,
 			   filename.c_str(),
@@ -524,38 +543,38 @@ git_tree* GitOps::setStaged(std::vector<std::string> paths) {
 	git_treebuilder_write(&oid, bld);
 	git_treebuilder_free(bld);
 	git_tree* tree=nullptr;
-	git_tree_lookup(&tree,repo,&oid);
+	git_tree_lookup(&tree,am->repo,&oid);
 	return tree;
 }
 
-git_commit* GitOps::getHead() {
+git_commit* getHead(gyoa::model::ActiveModel* am) {
 	git_commit* head = nullptr;
 
 	git_reference * ref = nullptr;
-	git_reference_lookup(&ref, repo, "refs/heads/master");
+	git_reference_lookup(&ref, am->repo, "refs/heads/master");
 	if (ref) {
 		const git_oid * parent_oid = git_reference_target(ref);
-		git_commit_lookup(&head, repo, parent_oid);
+		git_commit_lookup(&head, am->repo, parent_oid);
 	}
 	git_reference_free(ref);
 	return head;
 }
 
-git_commit* GitOps::getFetchCommit() {
+git_commit* getFetchCommit(gyoa::model::ActiveModel* am) {
 	git_commit* remote = nullptr;
 
 	git_reference * ref = nullptr;
-	git_reference_dwim(&ref, repo, "remotes/origin/master");
+	git_reference_dwim(&ref, am->repo, "remotes/origin/master");
 	if (ref) {
 		const git_oid * parent_oid = git_reference_target(ref);
-		git_commit_lookup(&remote, repo, parent_oid);
+		git_commit_lookup(&remote, am->repo, parent_oid);
 	}
 	git_reference_free(ref);
 	return remote;
 }
 
-bool GitOps::commonHistoryExists(context::context_t& context) {
-	git_commit* commit=getCommon(context);
+bool commonHistoryExists(gyoa::model::ActiveModel* am,context::context_t& context) {
+	git_commit* commit=getCommon(am,context);
 	if (commit) {
 		git_commit_free(commit);
 		return true;
@@ -563,17 +582,17 @@ bool GitOps::commonHistoryExists(context::context_t& context) {
 	return false;
 }
 
-git_commit* GitOps::getCommon(context::context_t& context) {
-	git_tag* last_common=getTagFromName("last_common");
+git_commit* getCommon(gyoa::model::ActiveModel* am,context::context_t& context) {
+	git_tag* last_common=getTagFromName(am,"last_common");
 	if (last_common) {
 		git_commit* common;
-		git_commit_lookup(&common,repo,git_tag_target_id(last_common));
+		git_commit_lookup(&common,am->repo,git_tag_target_id(last_common));
 		git_tag_free(last_common);
 		return common;
 	}
 
-	git_commit* const local = getHead();
-	git_commit* const remote = getFetchCommit();
+	git_commit* const local = getHead(am);
+	git_commit* const remote = getFetchCommit(am);
 
 	git_commit* to_return=nullptr;
 
@@ -640,15 +659,9 @@ git_commit* GitOps::getCommon(context::context_t& context) {
 	return to_return;
 }
 
-void GitOps::setOrigin(context::context_t context) {
+void setOrigin(gyoa::model::ActiveModel* am,context::context_t context) {
 	//method sets origin if not pre-existing
-	git_remote_free(getOrigin(context));
-}
-
-void GitOps::clear() {
-	git_repository_free(repo);
-	FileIO::deletePath(repo_dir);
-	init();
+	git_remote_free(getOrigin(am,context));
 }
 
 typedef struct {
@@ -667,33 +680,33 @@ int each_tag(const char *name, git_oid *oid, void *payload) {
 	return 0;
 }
 
-git_tag* GitOps::getTagFromName(std::string name) {
+git_tag* getTagFromName(gyoa::model::ActiveModel* am,std::string name) {
 	tag_data d;
-	int error = git_tag_foreach(repo, each_tag, &d);
+	int error = git_tag_foreach(am->repo, each_tag, &d);
 	if (!d.found)
 		return nullptr;
 	git_tag* tag = nullptr;
-	git_tag_lookup(&tag, repo, &d.found_oid);
+	git_tag_lookup(&tag, am->repo, &d.found_oid);
 	return tag;
 }
 
-git_remote* GitOps::getOrigin(context::context_t& context) {
+git_remote* getOrigin(gyoa::model::ActiveModel* am,context::context_t& context) {
 	git_remote* origin = nullptr;
-	git_remote_lookup(&origin, repo, "origin");
+	git_remote_lookup(&origin, am->repo, "origin");
 	if (origin) {
 		if (context.upstream_url.compare(std::string(git_remote_url(origin)))) {
-			git_remote_set_url(repo, "origin", context.upstream_url.c_str());
-			git_remote_set_pushurl(repo, "origin",
+			git_remote_set_url(am->repo, "origin", context.upstream_url.c_str());
+			git_remote_set_pushurl(am->repo, "origin",
 					context.upstream_url.c_str());
 		}
 		return origin;
 	}
-	git_remote_create(&origin, repo, "origin", context.upstream_url.c_str());
-	git_remote_set_pushurl(repo, "origin", context.upstream_url.c_str());
+	git_remote_create(&origin, am->repo, "origin", context.upstream_url.c_str());
+	git_remote_set_pushurl(am->repo, "origin", context.upstream_url.c_str());
 	return origin;
 }
 
-void GitOps::merge_string(std::string& result, std::string common,
+void merge_string(std::string& result, std::string common,
 		std::string remote, std::string local, merge_style style,
 		MergeResult& log, std::string error_description) {
 	if (style == FORCE_LOCAL) {
@@ -764,7 +777,7 @@ void GitOps::merge_string(std::string& result, std::string common,
 	result = common;
 }
 
-void GitOps::merge_id(model::id_type& result, model::id_type common,
+void merge_id(model::id_type& result, model::id_type common,
 		model::id_type remote, model::id_type local, merge_style style,
 		MergeResult& log, std::string error_description) {
 	if (style == FORCE_LOCAL) {
@@ -835,7 +848,7 @@ void GitOps::merge_id(model::id_type& result, model::id_type common,
 	result = common;
 }
 
-void GitOps::merge_bool(bool& result, bool common, bool remote, bool local,
+void merge_bool(bool& result, bool common, bool remote, bool local,
 		merge_style style, MergeResult& log,
 		std::string error_description) {
 	if (style == FORCE_LOCAL) {

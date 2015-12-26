@@ -11,6 +11,12 @@
 #include <exception>
 #include <iostream>
 
+namespace gyoa {
+namespace model {
+struct ActiveModel;
+}
+}
+
 class NoModelException: public std::exception {
 	virtual const char* what() const throw () {
 		return "No Model Loaded";
@@ -21,6 +27,18 @@ class FileNotFoundException: public std::exception {
 public:
 	FileNotFoundException(std::string file) {
 		err = "File not Found: " + file;
+	}
+	virtual const char* what() const throw () {
+		return err.c_str();
+	}
+
+	std::string err;
+};
+
+class DirectoryInvalidException: public std::exception {
+public:
+	DirectoryInvalidException(std::string dir) {
+		err = "Invalid Directory: " + dir;
 	}
 	virtual const char* what() const throw () {
 		return err.c_str();
@@ -64,5 +82,7 @@ public:
 
 	std::string err;
 };
+
+void checkModelDirectory(gyoa::model::ActiveModel*);
 
 #endif /* BACKEND_MODEL_ERROR_H_ */

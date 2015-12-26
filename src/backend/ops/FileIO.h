@@ -29,12 +29,13 @@ namespace FileIO {
 	std::vector<std::string> getAllFiles(std::string directory);
 	//! retrieves name of file from longer path.
 	std::string getFilename(std::string filepath);
+	bool fileExists(std::string path);
 	void deletePath(std::string path);
 
-	void writeRoomToFile(gyoa::model::room_t room, std::string filename);
+	void writeRoomToFile(const gyoa::model::room_t room, std::string filename);
 	model::room_t loadRoom(std::string filename);
 	model::room_t loadRoomFromText(std::string text);
-	void writeWorldToFile(gyoa::model::world_t&, std::string filename);
+	void writeWorldToFile(const gyoa::model::world_t&, std::string filename);
 	gyoa::model::world_t loadWorld(std::string filename);
 	gyoa::model::world_t loadWorldFromText(std::string text);
 	void writeGitignore(std::string filename);
