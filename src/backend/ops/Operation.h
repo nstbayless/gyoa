@@ -117,7 +117,7 @@ private:
 
 	//! determines the filename (including data_dir path) of room for room_id
 	std::string rm_id_to_filename(rm_id_t);
-public:
+private:
 	//! directory containing model data:
 	std::string data_dir="data/";
 

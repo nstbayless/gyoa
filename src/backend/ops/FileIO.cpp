@@ -7,12 +7,18 @@
 
 #include "FileIO.h"
 
+#include "boost/filesystem/operations.hpp"
+#include "boost/filesystem/path.hpp"
+#include "boost/iterator/iterator_facade.hpp"
 #include "rapidxml.hpp"
 #include "rapidxml_print.hpp"
+#include <cassert>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <map>
 #include <sstream>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -248,7 +254,7 @@ void gyoa::FileIO::writeContext(context::context_t context,
 	email->append_attribute(doc.allocate_attribute("text", context.user_email.c_str()));
 	root->append_node(email);
 
-	//write email
+	//write upstream remote
 	xml_node<>* upstream = doc.allocate_node(node_element, "upstream");
 	upstream->append_attribute(doc.allocate_attribute("text", context.upstream_url.c_str()));
 	root->append_node(upstream);
@@ -258,6 +264,27 @@ void gyoa::FileIO::writeContext(context::context_t context,
 	xml_node<>* rm = doc.allocate_node(node_element, "current_room");
 	rm->append_attribute(doc.allocate_attribute("id", id.c_str()));
 	root->append_node(rm);
+
+	//write authentication details:
+	xml_node<>* authentication = doc.allocate_node(node_element, "authentication");
+	authentication->append_attribute(doc.allocate_attribute("no_store", (context.git_authentication_prefs.do_not_store)?"true":"false"));
+
+	if (!context.git_authentication_prefs.do_not_store) {
+		//username:
+		xml_node<>* auth_username = doc.allocate_node(node_element, "user");
+		auth_username->append_attribute(doc.allocate_attribute("name",context.git_authentication_prefs.user_name.c_str()));
+		authentication->append_node(auth_username);
+
+		xml_node<>* auth_privkey_path = doc.allocate_node(node_element, "privkey");
+		auth_privkey_path->append_attribute(doc.allocate_attribute("path",context.git_authentication_prefs.path_to_privkey.c_str()));
+		authentication->append_node(auth_privkey_path);
+
+		xml_node<>* auth_pubkey_path = doc.allocate_node(node_element, "pubkey");
+		auth_pubkey_path->append_attribute(doc.allocate_attribute("path",context.git_authentication_prefs.path_to_pubkey.c_str()));
+		authentication->append_node(auth_pubkey_path);
+	}
+
+	root->append_node(authentication);
 
 	//write the doc to a file
 	std::ofstream myfile;
@@ -287,6 +314,28 @@ context::context_t gyoa::FileIO::loadContext(std::string filename) {
 			nd_ct->first_node("upstream")->first_attribute("text")->value();
 	context.current_room = parse_id(
 			nd_ct->first_node("current_room")->first_attribute("id")->value());
+	//authentication:
+	auto node_auth = nd_ct->first_node("authentication");
+	if (node_auth) {
+		//determine if authentication is stored:
+		char* str = node_auth->first_attribute("no_store")->value();
+		if (!std::strcmp(str,"false"))
+			context.git_authentication_prefs.do_not_store=false;
+		else if (!std::strcmp(str,"true"))
+			context.git_authentication_prefs.do_not_store=true;
+		else
+			assert(false);
+
+		if (!context.git_authentication_prefs.do_not_store) {
+			//remaining authentication preferences:
+			context.git_authentication_prefs.user_name = node_auth->first_node(
+					"user")->first_attribute("name")->value();
+			context.git_authentication_prefs.path_to_privkey =
+					node_auth->first_node("privkey")->first_attribute("path")->value();
+			context.git_authentication_prefs.path_to_pubkey =
+					node_auth->first_node("pubkey")->first_attribute("path")->value();
+		}
+	}
 	return context;
 }
 

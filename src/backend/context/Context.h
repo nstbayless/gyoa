@@ -16,7 +16,7 @@ namespace gyoa {
 namespace context {
 
 /**stores context information for a gyoa session,
- * such as current room, room history, user prefs, setc.*/
+ * such as current room, room history, user prefs, etc.*/
 struct context_t {
 	//! username of user
 	std::string user_name   ="gyoa_client";
@@ -29,6 +29,14 @@ struct context_t {
 
 	//! current room being viewed in play mode
 	model::rm_id_t current_room=model::id_type::null();
+
+	struct {
+		bool do_not_store=false;
+		std::string user_name="";
+		std::string path_to_privkey="";
+		std::string path_to_pubkey="";
+		//password not stored by design
+	} git_authentication_prefs;
 };
 
 } /* namespace context */

@@ -94,12 +94,12 @@ struct push_cred {
 	enum {
 		USERNAME,	//!< just a username [a]
 		PLAINTEXT,	//!< username [a] and password [b]
-		SSH,		//!< path to private ssh key [a] and public [b] and username [c] and passphrase [d]
+		SSH,		//!< path to private ssh key [c] and public [d] and username [a] and passphrase [b]
 	} credtype;
-	std::string cred_a="";
-	std::string cred_b="";
-	std::string cred_c="";
-	std::string cred_d="";
+	std::string username="";
+	std::string pass="";
+	std::string privkey="";
+	std::string pubkey="";
 };
 
 push_cred make_push_cred_username(std::string username);
@@ -142,7 +142,13 @@ public:
 	void commit(context::context_t&,std::string message);
 
 	//! fetches changes, but does not update world.
-	void fetch(context::context_t&);
+	//! returns false if error, true on success
+	//! credentials used to authenticate connection
+	bool fetch(context::context_t&, push_cred credentials);
+
+	//! fetches changes, but does not update world.
+	//! returns false if error, true on success
+	bool fetch(context::context_t&);
 
 	//! returns true if common history exists with most recently-fetched branch
 	bool commonHistoryExists(context::context_t&);

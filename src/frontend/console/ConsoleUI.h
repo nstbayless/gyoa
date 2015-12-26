@@ -61,10 +61,19 @@ private:
 	//! allows user to synchronize data to external repository.
 	void editGit();
 
+	//! retrieves git authentication credentials from user
+	//! returns 0 on success, 1 on abort.
+	int getCredentials(ops::push_cred&);
+
 	//! pulls and merges, asks user for input if there are conflicts.
 	//! All changes should be committed first.
 	//! returns true if successful
 	bool pullAndMerge();
+
+	//! first fetches without authentication. Then attempts
+	//! by asking user for cred.
+	//! overwrites cred with credentials attained if possible
+	bool tryFetch(ops::push_cred* cred=nullptr);
 
 	//! allows user to play game.
 	void playCurrentRoom();

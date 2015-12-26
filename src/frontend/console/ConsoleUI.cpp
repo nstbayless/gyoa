@@ -85,7 +85,10 @@ void ConsoleUI::start() {
 		ops.gitOps.clear();
 		context.upstream_url=input;
 		ops.saveContext(context);
-		ops.gitOps.fetch(context);
+		if (!tryFetch()) {
+			print("Fatal error fetching from source.");
+			goto exit;
+		}
 		ops.clearModel();
 		ops.gitOps.merge(ops::FORCE_REMOTE,ops,context);
 		print("Download successful.\n\nPress [h] for help.");

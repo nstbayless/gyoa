@@ -169,15 +169,91 @@ void GitOps::commit(context::context_t& context,std::string message) {
 	git_signature_free(sig);
 }
 
-void GitOps::fetch(context::context_t& context) {
+struct cred_payload {
+	push_cred& credentials;
+	bool* kill;
+};
+
+int packbuilder_progress_cb(int stage, unsigned int current, unsigned int total, void *payload){
+	return 0;
+}
+
+int push_negotiation_cb(const git_push_update **updates, size_t len, void *payload){
+	return 0;
+}
+
+int push_progress_cb(unsigned int current, unsigned int total, size_t bytes, void *payload)
+{
+	return 0;
+}
+
+int transfer_progress_cb(const git_transfer_progress *stats, void *payload){
+	return 0;
+}
+
+int text_cb(const char *str, int len, void *payload){
+	std::cout<<str<<'\n';
+	return 0;
+}
+
+int cred_cb(git_cred** cred, const char * url, const char * url_username, unsigned int, void* payload_void){
+	cred_payload* payload=(cred_payload*)payload_void;
+	if (*payload->kill) {
+		return -1;
+	}
+
+	std::string username = payload->credentials.username.c_str();
+	if (username.length() == 0)
+		username = url_username;
+
+	switch (payload->credentials.credtype) {
+	case push_cred::USERNAME:
+		git_cred_userpass_plaintext_new(cred,
+				username.c_str(),
+				"");
+		break;
+	case push_cred::PLAINTEXT:
+		git_cred_userpass_plaintext_new(cred,
+				username.c_str(),
+				payload->credentials.pass.c_str());
+		break;
+	case push_cred::SSH:
+		git_cred_ssh_key_new(cred,
+				username.c_str(),
+				payload->credentials.pubkey.c_str(),
+				payload->credentials.privkey.c_str(),
+				payload->credentials.pass.c_str());
+		break;
+	}
+	return 0;
+}
+
+int cert_check_cb(git_cert* cert, int valid, const char* host, void* payload){
+	return 1;
+}
+
+bool GitOps::fetch(context::context_t& context,push_cred credentials) {
 	git_remote* origin = getOrigin(context);
 	git_fetch_options opts = GIT_FETCH_OPTIONS_INIT;
+	opts.callbacks.credentials=cred_cb;
+	opts.callbacks.certificate_check=cert_check_cb;
+	bool kill=false;
+	cred_payload payload={credentials,&kill};
+	opts.callbacks.payload=(void*)&payload;
 	opts.download_tags=GIT_REMOTE_DOWNLOAD_TAGS_NONE;
-	git_remote_fetch(origin,
+	bool to_return = !git_remote_fetch(origin,
 		NULL, /* refspecs, NULL to use the configured ones */
 		&opts, /* options, empty for defaults */
 		NULL); /* reflog mesage, usually "fetch" or "pull", you can leave it NULL for "fetch" */
 	git_remote_free(origin);
+	if (!to_return)
+		std::cout<<giterr_last()->message<<"\n";
+	return to_return;
+}
+
+bool GitOps::fetch(context::context_t& context) {
+	push_cred credentials=make_push_cred_username("");
+	return fetch(context,credentials);
 }
 
 MergeResult GitOps::merge(
@@ -350,65 +426,6 @@ MergeResult GitOps::merge(
 	return to_return;
 }
 
-struct cred_payload {
-	push_cred& credentials;
-	bool* kill;
-};
-
-int packbuilder_progress_cb(int stage, unsigned int current, unsigned int total, void *payload){
-	return 0;
-}
-
-int push_negotiation_cb(const git_push_update **updates, size_t len, void *payload){
-	return 0;
-}
-
-int push_progress_cb(unsigned int current, unsigned int total, size_t bytes, void *payload)
-{
-	return 0;
-}
-
-int transfer_progress_cb(const git_transfer_progress *stats, void *payload){
-	return 0;
-}
-
-int text_cb(const char *str, int len, void *payload){
-	std::cout<<str<<'\n';
-	return 0;
-}
-
-int cred_cb(git_cred** cred, const char * url, const char * url_username, unsigned int, void* payload_void){
-	cred_payload* payload=(cred_payload*)payload_void;
-	if (*payload->kill) {
-		return -1;
-	}
-	git_credtype_t& credtype=*(git_credtype_t*)nullptr;
-	switch (payload->credentials.credtype) {
-	case push_cred::USERNAME:
-		git_cred_userpass_plaintext_new(cred,
-				payload->credentials.cred_a.c_str(),
-				nullptr);
-		break;
-	case push_cred::PLAINTEXT:
-		git_cred_userpass_plaintext_new(cred,
-				payload->credentials.cred_a.c_str(),
-				payload->credentials.cred_b.c_str());
-		break;
-	case push_cred::SSH:
-		git_cred_ssh_key_new(cred,
-				payload->credentials.cred_c.c_str(),
-				payload->credentials.cred_b.c_str(),
-				payload->credentials.cred_a.c_str(),
-				payload->credentials.cred_d.c_str());
-		break;
-	}
-	return 0;
-}
-
-int cert_check_cb(git_cert* cert, int valid, const char* host, void* payload){
-	return 1;
-}
-
 bool GitOps::push_direct(context::context_t& context,push_cred credentials,bool* kill){
 	cred_payload payload={credentials,kill};
 	git_remote* remote = getOrigin(context);
@@ -431,7 +448,6 @@ bool GitOps::push_direct(context::context_t& context,push_cred credentials,bool*
 	opts.callbacks.pack_progress=packbuilder_progress_cb;
 	opts.callbacks.transfer_progress=transfer_progress_cb;
 	git_remote_get_push_refspecs(&refspecs,remote);
-	std::cout<<"refspecs:\n";
 	bool to_return = !git_remote_push(remote,&refspecs,&opts);
 	git_remote_free(remote);
 	return to_return;
@@ -899,15 +915,15 @@ void GitOps::merge_bool(bool& result, bool common, bool remote, bool local,
 push_cred make_push_cred_username(std::string username) {
 	push_cred cred;
 	cred.credtype=push_cred::USERNAME;
-	cred.cred_a=username;
+	cred.username=username;
 	return cred;
 }
 
 push_cred make_push_cred_plaintext(std::string username, std::string password) {
 	push_cred cred;
 	cred.credtype=push_cred::PLAINTEXT;
-	cred.cred_a=username;
-	cred.cred_b=password;
+	cred.username=username;
+	cred.pass=password;
 	return cred;
 }
 
@@ -916,10 +932,10 @@ push_cred make_push_cred_ssh(std::string path_to_privkey,
 		std::string passphrase)  {
 	push_cred cred;
 	cred.credtype=push_cred::SSH;
-	cred.cred_a=path_to_privkey;
-	cred.cred_b=path_to_pubkey;
-	cred.cred_c=username;
-	cred.cred_d=passphrase;
+	cred.username=username;
+	cred.pass=passphrase;
+	cred.privkey=path_to_privkey;
+	cred.pubkey=path_to_pubkey;
 	return cred;
 }
 
