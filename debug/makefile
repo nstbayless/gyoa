@@ -12,6 +12,7 @@ RM := rm -rf
 -include src/backend/ops/subdir.mk
 -include src/backend/model/subdir.mk
 -include src/backend/git/subdir.mk
+-include src/backend/fileio/subdir.mk
 -include src/backend/context/subdir.mk
 -include src/backend/subdir.mk
 -include src/subdir.mk

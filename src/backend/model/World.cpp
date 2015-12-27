@@ -9,7 +9,7 @@
 
 #include "git2/repository.h"
 #include <utility>
-#include "../ops/FileIO.h"
+#include "../fileio/FileIO.h"
 
 #include "../id_parse.h"
 namespace gyoa {

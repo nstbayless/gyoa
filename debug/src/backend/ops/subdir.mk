@@ -4,15 +4,12 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../src/backend/ops/FileIO.cpp \
 ../src/backend/ops/Operation.cpp 
 
 OBJS += \
-./src/backend/ops/FileIO.o \
 ./src/backend/ops/Operation.o 
 
 CPP_DEPS += \
-./src/backend/ops/FileIO.d \
 ./src/backend/ops/Operation.d 
 
 

@@ -28,6 +28,7 @@ src/frontend/console \
 src/backend/ops \
 src/backend/model \
 src/backend/git \
+src/backend/fileio \
 src/backend \
 src/backend/context \
 

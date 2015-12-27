@@ -35,7 +35,7 @@
 #include "../id_parse.h"
 #include "../model/Room.h"
 #include "../model/World.h"
-#include "../ops/FileIO.h"
+#include "../fileio/FileIO.h"
 #include "../ops/Operation.h"
 
 namespace gyoa {

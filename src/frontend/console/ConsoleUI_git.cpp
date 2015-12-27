@@ -46,7 +46,7 @@ void ConsoleUI::editGit() {
 					am=model::makeModel(path);
 					gitops::obliterate(am);
 					gitops::init(am);
-					ops::saveContext(context,am->path+"context.txt");
+					context::saveContext(context,am->path+"context.txt");
 					print("fetching from " + context.upstream_url);
 					if (!tryFetch()) {
 						print("Error fetching from source. Aborting pull.");
@@ -130,7 +130,7 @@ void ConsoleUI::editGit() {
 			}
 			gitops::init(am);
 			context.upstream_url=s;
-			ops::saveContext(context,am->path+"context.txt");
+			context::saveContext(context,am->path+"context.txt");
 			print("Upstream repository set to "+ s);
 			print("\nType [h] for help.");
 			continue;
@@ -180,7 +180,7 @@ int ConsoleUI::getCredentials(gitops::push_cred& cred) {
 				if (input()=='y')
 					context.git_authentication_prefs.do_not_store=true;
 			}
-			ops::saveContext(context,am->path+"context.txt");
+			context::saveContext(context,am->path+"context.txt");
 		}
 		return 0;
 	} else {
@@ -232,7 +232,7 @@ int ConsoleUI::getCredentials(gitops::push_cred& cred) {
 					if (input() == 'y')
 						context.git_authentication_prefs.do_not_store = true;
 				}
-				ops::saveContext(context,am->path+"context.txt");
+				context::saveContext(context,am->path+"context.txt");
 			}
 			return 0;
 		}

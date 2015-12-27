@@ -18,17 +18,13 @@
 #include "../id_parse.h"
 #include "../model/Room.h"
 #include "../model/World.h"
-#include "FileIO.h"
+#include "../fileio/FileIO.h"
 
 namespace gyoa {
 namespace ops {
 
 using rm_id_t=model::id_type;
 using opt_id_t=model::id_type;
-
-//! throws exception if model not loaded.
-void checkModel();
-
 
 rm_id_t makeRoom(model::ActiveModel* activeModel) {
 	model::world_t* model = &activeModel->world;
@@ -194,18 +190,6 @@ bool savePending(model::ActiveModel* activeModel) {
 		if (iter.second.edited)
 			return true;
 	return false;
-}
-
-context::context_t loadContext(std::string data_dir) {
-	try {
-	return FileIO::loadContext(data_dir+"context.txt");
-	} catch (FileNotFoundException e) {
-		return context::context_t();
-	}
-}
-
-void saveContext(context::context_t context, std::string data_dir) {
-	FileIO::writeContext(context,data_dir+"context.txt");
 }
 
 void editStartRoom(model::ActiveModel* am, rm_id_t id) {

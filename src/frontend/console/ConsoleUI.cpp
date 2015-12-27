@@ -45,7 +45,7 @@ void ConsoleUI::start() {
 		print("World found! Loading world...");
 		am=model::loadModel(def_path);
 		print("World title \"" + am->world.title+"\"");
-		context=ops::loadContext(def_path+"context.txt");
+		context=context::loadContext(def_path+"context.txt");
 	} else {
 		print("No world found. Creating new world instead...");
 		if (model::directoryInUse(def_path)){
@@ -94,7 +94,7 @@ void ConsoleUI::start() {
 		if (input.size()==0)
 			goto pick_mode;
 		context.upstream_url=input;
-		ops::saveContext(context,am->path+"context.txt");
+		context::saveContext(context,am->path+"context.txt");
 		if (!tryFetch()) {
 			print("Fatal error fetching from source.");
 			goto exit;
@@ -411,7 +411,7 @@ void ConsoleUI::playCurrentRoom() {
 					}
 					else {
 						context.current_room=iter.second.dst;
-						ops::saveContext(context,am->path+"context.txt");
+						context::saveContext(context,am->path+"context.txt");
 						print_room();
 					}
 					return;

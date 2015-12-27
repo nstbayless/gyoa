@@ -24,12 +24,6 @@ namespace ops {
 	using rm_id_t=model::id_type;
 	using opt_id_t=model::id_type;
 
-	//! loads user context information (which room currently in, etc.)
-	gyoa::context::context_t loadContext(std::string dir);
-
-	//! saves user context information (current room, username, etc.)
-	void saveContext(context::context_t, std::string dir);
-
 	//! creates a room, incrementing world_t::next_gid and generating random rid.
 	//! room is added to model.
 	rm_id_t makeRoom(model::ActiveModel*);
