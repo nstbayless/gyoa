@@ -5,4 +5,4 @@ Git Your Own Adventure: an engine for crowd-written choose-your-own-adventure st
 
 Requires [libgit2](https://github.com/libgit2/libgit2) version 0.23 or higher
 
-The rapidxml library is used for file i/o. Ships with repository.
+The [rapidxml](http://rapidxml.sourceforge.net/) library is used for storing data. Ships with repository.
