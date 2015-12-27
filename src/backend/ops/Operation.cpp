@@ -31,7 +31,7 @@ void checkModel();
 
 
 rm_id_t makeRoom(model::ActiveModel* activeModel) {
-	model::world_t* model = &activeModel->model;
+	model::world_t* model = &activeModel->world;
 	assert(model);
 	rm_id_t id;
 	id.gid=model->next_rm_gid++;
@@ -42,44 +42,44 @@ rm_id_t makeRoom(model::ActiveModel* activeModel) {
 	model->rooms[id]=model::room_t();
 
 	//update model-edited information:
-	loadRoom(activeModel,id).edited=true;
+	model->rooms[id].edited=true;
 	model->edited=true;
 
 	return id;
 }
 
 void editRoomTitle(model::ActiveModel* activeModel,rm_id_t id, std::string title) {
-	model::world_t* model = &activeModel->model;
+	model::world_t* model = &activeModel->world;
 	assert(model);
 
 	//trim input:
 	title.erase(title.find_last_not_of(" \n\r\t")+1);
 
-	loadRoom(activeModel,id).title=title;
+	getRoom(activeModel,id).title=title;
 
 	//update model-edited information:
-	loadRoom(activeModel,id).edited=true;
+	getRoom(activeModel,id).edited=true;
 }
 
 void editRoomBody(model::ActiveModel* activeModel,rm_id_t id, std::string body) {
-	model::world_t* model = &activeModel->model;
+	model::world_t* model = &activeModel->world;
 	assert(model);
 
 	//trim input:
 	body.erase(body.find_last_not_of(" \n\r\t")+1);
 
-	loadRoom(activeModel,id).body=body;
+	getRoom(activeModel,id).body=body;
 
 	//update model-edited information:
-	loadRoom(activeModel,id).edited=true;
+	getRoom(activeModel,id).edited=true;
 }
 
 void addOption(model::ActiveModel* activeModel,rm_id_t id,
 		model::option_t option) {
-	model::world_t* model = &activeModel->model;
+	model::world_t* model = &activeModel->world;
 	assert(model);
 
-	auto& options = loadRoom(activeModel,id).options;
+	auto& options = getRoom(activeModel,id).options;
 	//add option with gid = highest gid + 1.
 	int max_opt_gid=0;
 	//find highest gid
@@ -95,56 +95,56 @@ void addOption(model::ActiveModel* activeModel,rm_id_t id,
 	options[{max_opt_gid+1, rnd_nr}]=option;
 
 	//update model-edited information:
-	loadRoom(activeModel,id).edited=true;
+	getRoom(activeModel,id).edited=true;
 }
 
 void removeOption(model::ActiveModel* activeModel,rm_id_t rid, opt_id_t oid) {
-	model::world_t* model = &activeModel->model;
+	model::world_t* model = &activeModel->world;
 	assert(model);
-	loadRoom(activeModel,rid).options.erase(oid);
+	getRoom(activeModel,rid).options.erase(oid);
 
 	//update model-edited information:
-	loadRoom(activeModel,rid).edited=true;
+	getRoom(activeModel,rid).edited=true;
 }
 
 void editOption(model::ActiveModel* activeModel,rm_id_t rid, opt_id_t oid,
 		model::option_t option) {
-	model::world_t* model = &activeModel->model;
+	model::world_t* model = &activeModel->world;
 	assert(model);
 
-	loadRoom(activeModel,rid).options[oid]=option;
+	getRoom(activeModel,rid).options[oid]=option;
 
 	//update model-edited information:
-	loadRoom(activeModel,rid).edited=true;
+	getRoom(activeModel,rid).edited=true;
 }
 
 void editRoomDeadEnd(model::ActiveModel* activeModel,rm_id_t id, bool dead_end) {
-	model::world_t* model = &activeModel->model;
+	model::world_t* model = &activeModel->world;
 	assert(model);
 
-	loadRoom(activeModel,id).dead_end=dead_end;
+	getRoom(activeModel,id).dead_end=dead_end;
 
 	//update model-edited information:
-	loadRoom(activeModel,id).edited=true;
+	getRoom(activeModel,id).edited=true;
 }
 
 
 std::string saveRoom(model::ActiveModel* activeModel,rm_id_t id) {
-	model::world_t* model = &activeModel->model;
+	model::world_t* model = &activeModel->world;
 	assert(model);
 	assert(activeModel->path.length()>1);
 
 	std::string file=rm_id_to_filename(id,activeModel->path);
-	FileIO::writeRoomToFile(loadRoom(activeModel,id),file);
+	FileIO::writeRoomToFile(getRoom(activeModel,id),file);
 
 	//reset model-edited information:
-	loadRoom(activeModel,id).edited=false;
+	getRoom(activeModel,id).edited=false;
 
 	return file;
 }
 
 void saveWorld(model::ActiveModel* activeModel) {
-	model::world_t* model = &activeModel->model;
+	model::world_t* model = &activeModel->world;
 	assert(model);
 	assert(activeModel->path.length()>1);
 
@@ -156,7 +156,7 @@ void saveWorld(model::ActiveModel* activeModel) {
 }
 
 std::string saveAll(model::ActiveModel* activeModel,bool force) {
-	model::world_t* model = &activeModel->model;
+	model::world_t* model = &activeModel->world;
 	assert(model);
 	assert(activeModel->path.length()>1);
 
@@ -185,7 +185,7 @@ std::string saveAll(model::ActiveModel* activeModel,bool force) {
 }
 
 bool savePending(model::ActiveModel* activeModel) {
-	model::world_t* model = &activeModel->model;
+	model::world_t* model = &activeModel->world;
 	assert(model);
 
 	if (model->edited)
@@ -210,8 +210,8 @@ void saveContext(context::context_t context, std::string data_dir) {
 
 void editStartRoom(model::ActiveModel* am, rm_id_t id) {
 	assert(model::roomExists(am,id));
-	am->model.first_room=id;
-	am->model.edited=true;
+	am->world.first_room=id;
+	am->world.edited=true;
 }
 
 } /* namespace ops */

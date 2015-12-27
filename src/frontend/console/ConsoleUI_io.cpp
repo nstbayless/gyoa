@@ -34,21 +34,21 @@ model::rm_id_t ConsoleUI::inputRoom() {
 		//find room with given gidr
 		int gid = atoi(s.c_str());
 		std::vector<model::rm_id_t> matches;
-		for (auto iter : am->model.rooms){
+		for (auto iter : am->world.rooms){
 			if (iter.first.gid==gid)
 				matches.push_back(iter.first);
 		}
 		if (matches.empty()) {
-			print("No matches for gid " + std::to_string(gid) + ":*  of " + std::to_string(am->model.rooms.size()) + " possible results.");
+			print("No matches for gid " + std::to_string(gid) + ":*  of " + std::to_string(am->world.rooms.size()) + " possible results.");
 			goto try_again;
 		}
 		// for (auto iter : matches)
 		else {
 			// hack: don't care about the rid for now, load first gid match
-			model::loadRoom(am,matches[0]);
+			model::getRoom(am,matches[0]);
 		}
 		if (matches.size()==1) {
-			print("Match found: " + write_id(matches[0])+" (\"" + am->model.rooms[matches[0]].title + "\")");
+			print("Match found: " + write_id(matches[0])+" (\"" + am->world.rooms[matches[0]].title + "\")");
 			print("Confirm? [y]:");
 			if (input()=='y') {
 				print("selected id " + write_id(matches[0]));
@@ -58,7 +58,7 @@ model::rm_id_t ConsoleUI::inputRoom() {
 		}
 		print(std::to_string(matches.size()) + " matches found: \n");
 		for (auto iter : matches) {
-			print(write_id(iter) + " (\"" + am->model.rooms[iter].title + "\")");
+			print(write_id(iter) + " (\"" + am->world.rooms[iter].title + "\")");
 		}
 		print("\nPlease enter complete a:b id.");
 		goto try_again;
@@ -66,7 +66,7 @@ model::rm_id_t ConsoleUI::inputRoom() {
 
 	if (f!=std::string::npos) {
 		auto id = parse_id(s);
-		if (am->model.rooms.count(id)) {
+		if (am->world.rooms.count(id)) {
 			print("selected id " + write_id(id));
 			return id;
 		}
@@ -155,7 +155,7 @@ void ConsoleUI::print_help() {
 					"[s]   save all\n"
 					"[g]   for synchronization options (git).\n"
 					"[h]   view this screen");
-			print("\nediting scenario "+write_id(context.current_room) + " (\"" + model::loadRoom(am,context.current_room).title +"\")");
+			print("\nediting scenario "+write_id(context.current_room) + " (\"" + model::getRoom(am,context.current_room).title +"\")");
 			if (ops::savePending(am))
 				print("\nalert: un[s]aved changes.");
 			break;
@@ -189,7 +189,7 @@ void ConsoleUI::print_room() {
 	int opt_n = 1;
 	auto id = context.current_room;
 
-	model::room_t& rm = model::loadRoom(am,context.current_room);
+	model::room_t& rm = model::getRoom(am,context.current_room);
 	if (mode==PLAY)
 		clear();
 	print("## " + rm.title + " ##");
@@ -207,7 +207,7 @@ void ConsoleUI::print_room() {
 			if (iter.second.dst.is_null())//no destination
 				print("\t(no destination)\n");
 			else
-				print("\tdestination: scenario id " + write_id(iter.second.dst) + " (\"" + model::loadRoom(am,iter.second.dst).title + "\")\n");
+				print("\tdestination: scenario id " + write_id(iter.second.dst) + " (\"" + model::getRoom(am,iter.second.dst).title + "\")\n");
 		}
 		opt_n++;
 	}

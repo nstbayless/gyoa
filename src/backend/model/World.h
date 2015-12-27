@@ -48,7 +48,7 @@ struct ActiveModel {
 	//! directory where model is saved/loaded
 	std::string path;
 	//! model instance including all unsaved changes
-	model::world_t model;
+	model::world_t world;
 	git_repository* repo=nullptr;
 private:
 //non-copyable:
@@ -79,9 +79,9 @@ int loadAllRooms(ActiveModel*);
 //! returns true if a room exists with the given ID
 bool roomExists(ActiveModel*,rm_id_t);
 
-//! loads the room with the given id
+//! retrieves the room with the given id, loading if necessary
 //! should not be modified (will be const in future versions)
-room_t& loadRoom(ActiveModel*,rm_id_t);
+room_t& getRoom(ActiveModel*,rm_id_t);
 
 //! retrieves nth option by id from given room, where n is from 1 to 9.
 //! returns opt_id_t::null() if no option found.

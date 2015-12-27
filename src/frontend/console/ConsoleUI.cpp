@@ -31,6 +31,7 @@ void ConsoleUI::start() {
 	print("Welcome to " + meta::NAME_FULL+"!");
 	print("Built: "+meta::BUILD_DATE +" at " + meta::BUILD_TIME);
 	system("mkdir data 2> /dev/null");
+	gitops::gitInit();
 	print("\nloading world...");
 	std::string def_path="data/";
 
@@ -43,7 +44,7 @@ void ConsoleUI::start() {
 	if (model::directoryContainsModel(def_path)) {
 		print("World found! Loading world...");
 		am=model::loadModel(def_path);
-		print("World title \"" + am->model.title+"\"");
+		print("World title \"" + am->world.title+"\"");
 		context=ops::loadContext(def_path+"context.txt");
 	} else {
 		print("No world found. Creating new world instead...");
@@ -133,27 +134,29 @@ void ConsoleUI::start() {
 	}
 	exit:
 	print("Exiting game...");
+	model::freeModel(am);
+	gitops::gitShutdown();
 	clear();
 }
 
 void ConsoleUI::editCurrentRoom() {
 	assert(mode==EDIT_ROOM);
-	print_help();
 	if (FixContextIfRoomIsNull()) {
 		print("World is empty. Creating initial room...");
 		model::rm_id_t init = context.current_room = ops::makeRoom(am);
 		ops::editStartRoom(am,init);
 	}
+	print_help();
 	std::string s;
 	while (true){
 		assert(mode==EDIT_ROOM);
 		auto id = context.current_room;
-		auto& rm = model::loadRoom(am,context.current_room);
+		auto& rm = model::getRoom(am,context.current_room);
 		print ("Enter command. Press [h] for help.");
 		switch (input()) {
 		case 'q': mode=QUIT;									return;
 		case 'p': mode=PLAY; print_room();						return;
-		case 'b': context.current_room=am->model.first_room; print_help();
+		case 'b': context.current_room=am->world.first_room; print_help();
 			continue;
 		case 'j': id=inputRoom();
 			if (!id.is_null()) {
@@ -165,7 +168,7 @@ void ConsoleUI::editCurrentRoom() {
 			break;
 		case 'i':
 			model::loadAllRooms(am);
-			for (auto iter : am->model.rooms) {
+			for (auto iter : am->world.rooms) {
 				print("scenario id "+write_id(iter.first) +" (\""+iter.second.title+"\")");
 			}
 			break;
@@ -244,7 +247,7 @@ void ConsoleUI::editOptions() {
 	while (true) {
 		assert(mode == EDIT_OPTIONS);
 		auto id = context.current_room;
-		auto& rm = model::loadRoom(am,context.current_room);
+		auto& rm = model::getRoom(am,context.current_room);
 		print ("Enter command. Press [h] for help, [e] to return to main edit menu.");
 		switch (char c = input()) {
 			case 'q':
@@ -298,7 +301,7 @@ void ConsoleUI::editOptions() {
 			case 'x': print("remove which option? Enter number (0 to cancel)");
 					it = input()-'0';
 					if (it>0 && it<=9) {
-						input_id=model::getOption(model::loadRoom(am,id),it);
+						input_id=model::getOption(model::getRoom(am,id),it);
 
 						if (input_id.is_null()) {
 							//invalid option input:
@@ -363,13 +366,13 @@ void ConsoleUI::editOptions() {
 void ConsoleUI::playCurrentRoom() {
 	user_failed:
 	assert(mode==PLAY);
-	auto& rm = model::loadRoom(am,context.current_room);
+	auto& rm = model::getRoom(am,context.current_room);
 	if (FixContextIfRoomIsNull())
 		return;
 	switch(char c = input()){
 	case 'q': mode=QUIT; 											break;
 	case 'e': mode=EDIT_ROOM; 										break;
-	case 'b': context.current_room=am->model.first_room; print_room(); 	break;
+	case 'b': context.current_room=am->world.first_room; print_room(); 	break;
 	case 'r': print(""); print_room();								break;
 	case 'h': print_help();											break;
 		default:
@@ -401,7 +404,7 @@ void ConsoleUI::playCurrentRoom() {
 							case 'e':
 									mode=EDIT_ROOM; return;
 							case 'b':
-									context.current_room=am->model.first_room; print_room(); return;
+									context.current_room=am->world.first_room; print_room(); return;
 							default:
 									print_room();
 						}
@@ -424,7 +427,7 @@ void ConsoleUI::playCurrentRoom() {
 
 bool ConsoleUI::FixContextIfRoomIsNull() {
 	if (context.current_room.is_null()) {
-		context.current_room = am->model.first_room;
+		context.current_room = am->world.first_room;
 		if (context.current_room.is_null()) {
 			clear();
 			print("World is empty. Switching to edit mode.");

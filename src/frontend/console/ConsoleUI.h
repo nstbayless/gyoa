@@ -76,6 +76,7 @@ private:
 	//! first fetches without authentication. Then attempts
 	//! by asking user for cred.
 	//! overwrites cred with credentials attained if possible
+	//! returns true if successful
 	bool tryFetch(gitops::push_cred* cred=nullptr);
 
 	//! allows user to play game.

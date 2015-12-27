@@ -31,6 +31,7 @@ namespace FileIO {
 	std::string getFilename(std::string filepath);
 	bool fileExists(std::string path);
 	void deletePath(std::string path);
+	std::string getCanonicalPath(std::string path);
 
 	void writeRoomToFile(const gyoa::model::room_t room, std::string filename);
 	model::room_t loadRoom(std::string filename);

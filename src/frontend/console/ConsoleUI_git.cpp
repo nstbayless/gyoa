@@ -47,7 +47,8 @@ void ConsoleUI::editGit() {
 					gitops::obliterate(am);
 					gitops::init(am);
 					ops::saveContext(context,am->path+"context.txt");
-					if (!gitops::fetch(am,context)) {
+					print("fetching from " + context.upstream_url);
+					if (!tryFetch()) {
 						print("Error fetching from source. Aborting pull.");
 						continue;
 					}

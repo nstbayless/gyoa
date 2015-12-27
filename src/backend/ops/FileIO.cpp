@@ -346,3 +346,7 @@ std::string gyoa::FileIO::getFilename(std::string filepath) {
 bool gyoa::FileIO::fileExists(std::string path) {
 	return boost::filesystem::exists(path);
 }
+
+std::string gyoa::FileIO::getCanonicalPath(std::string path) {
+	return boost::filesystem::canonical(boost::filesystem::path(path)).string();
+}

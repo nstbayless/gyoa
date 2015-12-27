@@ -17,7 +17,7 @@ namespace model {
 
 ActiveModel* makeModel(std::string directory) {
 	ActiveModel* am = new ActiveModel();
-	am->path=directory;
+	am->path=FileIO::getCanonicalPath(directory);
 	if (am->path.substr(am->path.length()-1).compare("/"))
 		am->path += "/";
 	am->repo=nullptr;
@@ -40,32 +40,34 @@ bool directoryInUse(std::string dir) {
 
 ActiveModel* loadModel(std::string dir) {
 	ActiveModel* am = new ActiveModel();
-	am->path=dir;
+	am->path=FileIO::getCanonicalPath(dir);
 	if (am->path.substr(am->path.length()-1).compare("/"))
 		am->path+="/";
-	am->model = FileIO::loadWorld(dir+"world.txt");
+	am->world = FileIO::loadWorld(dir+"world.txt");
 	am->repo=nullptr;
 	return am;
 }
 
 int loadAllRooms(ActiveModel* am) {
 	int c;
-	for (auto iter : am->model.rooms)
+	for (auto iter : am->world.rooms)
 		if (!iter.second.loaded) {
-			loadRoom(am,iter.first);
+			getRoom(am,iter.first);
 			c++;
 		}
 	return c;
 }
 
 bool roomExists(ActiveModel* am, rm_id_t id) {
-	return am->model.rooms.count(id);
+	return am->world.rooms.count(id);
 }
 
-room_t& loadRoom(ActiveModel* am, rm_id_t id) {
+room_t& getRoom(ActiveModel* am, rm_id_t id) {
 	assert (!id.is_null());
-	am->model.rooms[id]=FileIO::loadRoom(rm_id_to_filename(id,am->path));
-	return am->model.rooms[id];
+	if (am->world.rooms.count(id))
+		return am->world.rooms[id];
+	am->world.rooms[id]=FileIO::loadRoom(rm_id_to_filename(id,am->path));
+	return am->world.rooms[id];
 }
 
 opt_id_t getOption(room_t& room, int n) {

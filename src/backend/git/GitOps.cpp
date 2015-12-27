@@ -112,8 +112,7 @@ void open(gyoa::model::ActiveModel* am) {
 void init(gyoa::model::ActiveModel* am) {
 	assert(am);
 	std::string repo_dir = am->path;
-	git_repository* repo = am->repo;
-	if (git_repository_init(&repo, repo_dir.c_str(), false))
+	if (git_repository_init(&am->repo, repo_dir.c_str(), false))
 		throw GitInitFail(repo_dir);
 }
 
@@ -287,7 +286,7 @@ MergeResult merge(gyoa::model::ActiveModel* am,
 
 	model::world_t common=modelFromCommit(am,common_commit);
 	model::world_t remote=modelFromCommit(am,remote_commit);
-	model::world_t& local=am->model;
+	model::world_t& local=am->world;
 
 	//1. merge tmp (remote) model into parent (local) model
 	//2. save local model
