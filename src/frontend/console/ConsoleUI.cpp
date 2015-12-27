@@ -50,13 +50,13 @@ void ConsoleUI::start() {
 		print("No world found. Creating new world instead...");
 		if (model::directoryInUse(def_path)){
 			print("Directory \"" + def_path + "\"already in use. Aborting.");
-			goto exit;
+			goto EXIT;
 		}
 		am=model::makeModel(def_path);
 	}
 
+PICK_MODE:
 	//user selects mode:
-	pick_mode:
 	print("\nWould you like to [e]dit, [p]lay, or [q]uit?");
 
 	//remote repository options:
@@ -69,48 +69,78 @@ void ConsoleUI::start() {
 			print("You may also [d]ownload the latest changes to the adventure from the internet. (recommended.)");
 	}
 	choice = input();
+
+	//user selects mode
 	if (choice=='e') {
+		//edit mode
 		mode=EDIT_ROOM;
 	} else if (choice=='p') {
+		//play mode
 		mode=PLAY;
 		clear();
 		FixContextIfRoomIsNull();
 		print_room();
 	} else if (choice=='q') {
+		//quit
 		mode=QUIT;
-		goto exit;
+		goto EXIT;
 	} else if (choice=='d'&&git_pull_reqd) {
+		//download (routine)
+
+		//save, initialize git, stage&commit, merge.
 		ops::saveAll(am);
 		gitops::init(am);
 		gitops::stageAndCommit(am,context,"pre-pull commit");
 		pullAndMerge();
+
+		//user selects a new option
 		git_pull_reqd=false;
 		mode=META;
-		goto pick_mode;
-	} else if (choice=='d'&&git_pull_reqd&&context.upstream_url.size()==0&&newly_created) {
+		goto PICK_MODE;
+	} else if (choice=='d'&&git_pull_reqd&&
+			context.upstream_url.size()==0&&newly_created) {
+		//download (first time)
+
+		//initialize git repo if necessary
 		gitops::init(am);
-		print("Please enter a URL for the upstream repository, e.g. https://github.com/account/repo\nLeave blank to cancel.");
+
+		//user enters URL
+		print("Please enter a URL for the upstream repository, e.g. "
+				"https://github.com/account/repo\n"
+				"Leave blank to cancel.");
 		std::string input = inputString();
+
+		//user cancels
 		if (input.size()==0)
-			goto pick_mode;
+			goto PICK_MODE;
+
+		//update user prefs with new upstream
 		context.upstream_url=input;
 		context::saveContext(context,am->path+"context.txt");
+
+		//fetch commits from upstream
 		if (!tryFetch()) {
 			print("Fatal error fetching from source.");
-			goto exit;
+			goto EXIT;
 		}
+
+		//merge upstream into local repo
 		gitops::merge(am,gitops::FORCE_REMOTE,context);
+
+		//user selects a new option
 		print("Download successful.\n\nPress [h] for help.");
 		mode=META;
 		git_pull_reqd=false;
-		goto pick_mode;
+		goto PICK_MODE;
 	} else {
+		//try again
 		mode=META;
-		goto pick_mode;
+		goto PICK_MODE;
 	}
 
 	//user has fun:
 	while (true) {
+		//present options based on mode
 		if (mode==EDIT_ROOM)
 			editCurrentRoom();
 		if (mode==PLAY)
@@ -123,7 +153,7 @@ void ConsoleUI::start() {
 					case 's':
 						print(ops::saveAll(am));
 					case 'x':
-						goto exit;
+						goto EXIT;
 					default:
 						print("[s]ave or e[x]it");
 						break;
@@ -132,7 +162,8 @@ void ConsoleUI::start() {
 			} else break;
 		}
 	}
-	exit:
+
+EXIT:
 	print("Exiting game...");
 	model::freeModel(am);
 	gitops::gitShutdown();
@@ -141,24 +172,33 @@ void ConsoleUI::start() {
 
 void ConsoleUI::editCurrentRoom() {
 	assert(mode==EDIT_ROOM);
+
+	//no currently selected room
 	if (FixContextIfRoomIsNull()) {
 		print("World is empty. Creating initial room...");
 		model::rm_id_t init = context.current_room = ops::makeRoom(am);
 		ops::editStartRoom(am,init);
 	}
+
+	//display options to user
 	print_help();
-	std::string s;
+
 	while (true){
 		assert(mode==EDIT_ROOM);
 		auto id = context.current_room;
 		auto& rm = model::getRoom(am,context.current_room);
 		print ("Enter command. Press [h] for help.");
+
+		//user selects option
 		switch (input()) {
-		case 'q': mode=QUIT;									return;
-		case 'p': mode=PLAY; print_room();						return;
-		case 'b': context.current_room=am->world.first_room; print_help();
+		case 'q': mode=QUIT;				return; //quit
+		case 'p': mode=PLAY; print_room();	return; //switch to play mode
+		case 'b': //return to starting room
+			context.current_room=am->world.first_room; print_help();
 			continue;
-		case 'j': id=inputRoom();
+		case 'j': //jump to room
+			//user selects target:
+			id=inputRoom();
 			if (!id.is_null()) {
 				//if input, jump to room
 				context.current_room=id;
@@ -166,51 +206,54 @@ void ConsoleUI::editCurrentRoom() {
 			}
 			id = context.current_room;
 			break;
-		case 'i':
+		case 'i': //display all rooms
 			model::loadAllRooms(am);
 			for (auto iter : am->world.rooms) {
 				print("scenario id "+write_id(iter.first) +" (\""+iter.second.title+"\")");
 			}
 			break;
-		// print room description:
-		case 'r':
+		case 'r': //display room
 			print_room();
 			break;
-		case 'y':
-			print("Old title: " + rm.title
+		case 'y': { //edit room title
+			print(
+					"Old title: " + rm.title
 							+ "\nEnter a new title (blank to cancel):");
-			s=inputString();
+			std::string s = inputString();
 			if (s.length())
-				ops::editRoomTitle(am,id,s);
+				ops::editRoomTitle(am, id, s);
 			print("\n ## " + rm.title + " ##\n\n");
 			if (s.length()) {
-				print("Title edited. (Don't forget to [s]ave.) Press [r] to review.\n");
+				print(
+						"Title edited. (Don't forget to [s]ave.) Press [r] to review.\n");
 			}
-			break;
-		case 't':
-			s=edit_text(rm.body);
+		} break;
+		case 't': { //edit room body text
+			std::string s=edit_text(rm.body);
 			if (s.length()) {
 				ops::editRoomBody(am,id,s);
 				//todo: compare to see if edited at all.
 				print("body text edited. (Don't forget to [s]ave.). Press [r] to review.\n");
 			}
-			break;
-		case 'd':
+		} break;
+		case 'd': //set as dead-end
+			//cannot set dead-end if options available
 			if (rm.options.size()) {
-				print("There are options available.\n"
-						"Please remove all options with [o] then [x] before marking this as a dead end.");
+				print(  "There are options available.\n"
+						"Please remove all options manually with [o] then [x] "
+						"before marking this as a dead end.");
 				break;
 			}
 			ops::editRoomDeadEnd(am,id,!rm.dead_end);
 			print("Dead End: " + std::string(((rm.dead_end) ? "Enabled" : "Disabled")) + ". (Don't forget to [s]ave.)\n");
 			break;
-		case 's':
+		case 's': //save all changes
 			print(ops::saveAll(am));
 			break;
-		case 'h':
+		case 'h': //display help
 			print_help();
 			break;
-		case 'o':
+		case 'o': //edit options
 			mode=EDIT_OPTIONS;
 			print_help();
 			editOptions();
@@ -218,10 +261,14 @@ void ConsoleUI::editCurrentRoom() {
 			clear();
 			print_help();
 			break;
-		case 'g':
+		case 'g': //git options
 			mode=EDIT_GIT;
 			print_help();
+
+			//displays more options...
 			editGit();
+
+			//return to edit mode (editGit() changes mode)
 			mode=EDIT_ROOM;
 			clear();
 			print_help();
@@ -232,11 +279,9 @@ void ConsoleUI::editCurrentRoom() {
 }
 
 void ConsoleUI::editOptions() {
-	//this is a messy function
+	//this is a messy function by design
 	assert(mode == EDIT_OPTIONS);
 
-	//declaring these local variables in advance
-	//because variables cannot be declared within a switch
 	int it;
 	std::string s;
 	model::option_t opt;
@@ -250,115 +295,125 @@ void ConsoleUI::editOptions() {
 		auto& rm = model::getRoom(am,context.current_room);
 		print ("Enter command. Press [h] for help, [e] to return to main edit menu.");
 		switch (char c = input()) {
-			case 'q':
+			case 'q': //return to edit_room mode
 			case 'e': return;
-			case 'r': print(""); print_room(); break;
-			case 's': print(ops::saveAll(am));
-					break;
-			case 'h': print_help(); break;
+			case 'r': //display room
+				print(""); print_room(); break;
+			case 's': //save all
+				print(ops::saveAll(am)); break;
+			case 'h': //display help
+				print_help(); break;
+			case 'a': //add new option to room
+				print("Enter text for new option (leave blank to cancel)");
+				s = inputString();
+				if (s.length()) {
+					//define option user is adding.
+					//gid.is_null() means the option goes nowhere by default.
+					opt.dst = model::opt_id_t::null();
+					opt.option_text=s;
 
-			//add new option to room:
-			case 'a': print("Enter text for new option (leave blank to cancel)");
-					s = inputString();
-					if (s.length()) {
-						//define option user is adding.
-						//gid.is_null() means the option goes nowhere by default.
-						opt.dst = model::opt_id_t::null();
-						opt.option_text=s;
-
-						//return here if user does not enter a valid option [c|l|e]
-						user_failed:
-						print("[c]reate scenario for option, [l]ink to existing scenario, or continue [e]diting?");
-						switch(input()) {
-							case 'd': //d is allowed as an alternative for c as when editing options below.
-							case 'c':
-								context.current_room=opt.dst=ops::makeRoom(am);
-								ops::editRoomTitle(am,opt.dst,opt.option_text);
-								mode=EDIT_ROOM;
+					//return here if user does not enter a valid option [c|l|e]
+				USER_FAILED:
+					print("[c]reate scenario for option, [l]ink to existing scenario, or continue [e]diting?");
+					switch(input()) {
+						case 'd': //d is allowed as an alternative
+								  //for c by convention
+						case 'c': //create scenario (switch to edit_room mode)
+							context.current_room=opt.dst=ops::makeRoom(am);
+							ops::editRoomTitle(am,opt.dst,opt.option_text);
+							mode=EDIT_ROOM;
+							break;
+						case 'l': //link to an existing room
+							//update opt.dst iff there is an input entry
+							input_id = inputRoom();
+							if (input_id.is_null()) {
+								print("\nCancelled operation.");
 								break;
-							case 'l':
-								//update opt.dst iff there is an input entry
-								input_id = inputRoom();
-								if (input_id.is_null()) {
-									print("\nCancelled operation.");
-									break;
-								} else
-									opt.dst=input_id;
-							case 'e': print_help(); break;
-							default: goto user_failed;
-						}
+							} else
+								opt.dst=input_id;
+						case 'e': //continue editing
+							print_help(); break;
+						default: goto USER_FAILED;
+					}
 
-						//option defined to user's tastes; add to room:
-						ops::addOption(am,id,opt);
-						print_help();
-						if (mode==EDIT_ROOM)
-							return;
-					} else
-						print("\nCancelled.");
-					break;
+					//option is now defined to user's tastes; add to room
+					ops::addOption(am,id,opt);
+					print_help();
 
-			//remove an existing option:
-			case 'x': print("remove which option? Enter number (0 to cancel)");
-					it = input()-'0';
-					if (it>0 && it<=9) {
-						input_id=model::getOption(model::getRoom(am,id),it);
+					// return to room_edit func if mode was changed above
+					if (mode==EDIT_ROOM)
+						return;
+				} else //no text entered for option
+					print("\nCancelled.");
+				break;
+			case 'x': //remove an existing option:
+				print("remove which option? Enter number (0 to cancel)");
+				it = input()-'0';
+				if (it>0 && it<=9) {
+					input_id=model::getOption(model::getRoom(am,id),it);
 
-						if (input_id.is_null()) {
-							//invalid option input:
-							print("\nNo such option exists to remove.");
-							break;
-						}
-						//valid option input:
-						ops::removeOption(am,id,input_id);
-						print("\nOption removed.");
+					if (input_id.is_null()) {
+						//invalid option input:
+						print("\nNo such option exists to remove.");
 						break;
 					}
+					//valid option input:
+					ops::removeOption(am,id,input_id);
+					print("\nOption removed.");
 					break;
-
+				}
+				break;
 			default:
-					it = c-'0';
-					//edit an existing option:
-					if (it>0 && it<=9) {
-						input_id=model::getOption(rm,it);
-						if (input_id.is_null()) {
-							//invalid option input:
-							print("\nNo such option exists to edit, but you can [a]dd it if you prefer.");
-							break;
-						}
-						//valid option input:
-						opt_input=rm.options[input_id];
-						print("Current text: "+opt_input.option_text);
-						if (opt_input.dst.is_null())
-							print ("No Destination");
-						else
-							print("Destination: "+write_id(opt_input.dst));
-						print("Edit [t]ext, [l]ink to existing destination, or create new [d]estination?");
-						switch(input()) {
-							case 't':
-								opt.dst=opt_input.dst;
-								opt.option_text=edit_text(opt_input.option_text);
-								print("Text edited. Don't forget to [s]ave. Press [r] to review.\n");
-								ops::editOption(am,id, input_id, opt);
-								continue;
-							case 'd':
-								context.current_room=opt.dst=ops::makeRoom(am);
-								ops::editOption(am,id, input_id, opt);
-								ops::editRoomTitle(am,opt.dst,opt.option_text);
-								mode=EDIT_ROOM;
-								print_help();
-								return;
-							case 'l':
-								ops::editOption(am,id, input_id, {inputRoom(), opt_input.option_text});
-								print("\noption edited. Still editing room " + write_id(id) + "(\"" + rm.title + "\").\n");
-								continue;
-							default:
-								print("\nCancelled.");
-								continue;
-						}
-						print("\nInvalid option number.");
+				it = c-'0';
+				if (it>0 && it<=9) { //edit an existing option:
+					input_id=model::getOption(rm,it);
+					if (input_id.is_null()) {
+						//invalid option input
+						print("\nNo such option exists to edit, but you can [a]dd it if you prefer.");
 						break;
 					}
+
+					//valid option input
+					opt_input=rm.options[input_id];
+
+					//display option text
+					print("Current text: "+opt_input.option_text);
+
+					//display option target destination
+					if (opt_input.dst.is_null())
+						print ("No Destination");
+					else
+						print("Destination: "+write_id(opt_input.dst));
+					print("Edit [t]ext, [l]ink to existing destination, or create new [d]estination?");
+					switch(input()) {
+						case 't': //edit option text
+							opt.dst=opt_input.dst;
+							opt.option_text=edit_text(opt_input.option_text);
+							print("Text edited. Don't forget to [s]ave. Press [r] to review.\n");
+							ops::editOption(am,id, input_id, opt);
+							continue;
+						case 'd': //create new destination for option
+							context.current_room=opt.dst=ops::makeRoom(am);
+							ops::editOption(am,id, input_id, opt);
+							ops::editRoomTitle(am,opt.dst,opt.option_text);
+
+							//return to edit mode (at new destination room)
+							mode=EDIT_ROOM;
+							print_help();
+							return;
+						case 'l': //link option to existing destination
+							ops::editOption(am,id, input_id, {inputRoom(), opt_input.option_text});
+							print("\noption edited. Still editing room " + write_id(id) + "(\"" + rm.title + "\").\n");
+							continue;
+						default:
+							print("\nCancelled.");
+							continue;
+					}
+					print("\nInvalid option number.");
 					break;
+				} else //non-numeric
+					print("Unknown command");
+				break;
 		}
 	}
 }
@@ -370,19 +425,21 @@ void ConsoleUI::playCurrentRoom() {
 	if (FixContextIfRoomIsNull())
 		return;
 	switch(char c = input()){
-	case 'q': mode=QUIT; 											break;
-	case 'e': mode=EDIT_ROOM; 										break;
-	case 'b': context.current_room=am->world.first_room; print_room(); 	break;
-	case 'r': print(""); print_room();								break;
-	case 'h': print_help();											break;
-		default:
-		if (c>='1'&&c<='9') {
+	case 'q': mode=QUIT; 						break; //quit game
+	case 'e': mode=EDIT_ROOM; 					break; //switch to edit mode
+	case 'b': context.current_room=
+			am->world.first_room; print_room(); break; //restart
+	case 'r': print(""); print_room();			break; //display room text again
+	case 'h': print_help();						break; //display help
+	default:
+		if (c>='1'&&c<='9') { //select option (and follow to room)
 			int choice = c-'0';
 			//select choice-th option:
-			for (auto iter : rm.options) {
+			for (auto iter : rm.options) { //find desired option
 				choice--;
-				if (choice==0) {
-					if (iter.second.dst.is_null()) { //no destination for given option
+				if (choice==0) { //found desired option
+					if (iter.second.dst.is_null()) {
+						//no destination for given option
 						print("This option's scenario has not been written.\n"
 								"You may [c]reate a scenario for the option, "
 								"[r]eturn to pick another option, "
@@ -390,26 +447,29 @@ void ConsoleUI::playCurrentRoom() {
 								"or [b]egin again from the start.");
 						model::option_t opt_edit = iter.second;
 						switch (input()) {
-							case 'd': //alternative for 'c'
-							case 'c':
-									opt_edit.dst=ops::makeRoom(am);
-									ops::editOption(am,context.current_room,iter.first,opt_edit);
-									ops::editRoomTitle(am,opt_edit.dst,opt_edit.option_text);
-									context.current_room=opt_edit.dst;
-									mode=EDIT_ROOM;
-										break;
-							case 'r':
-									print_room();
-										return;
-							case 'e':
-									mode=EDIT_ROOM; return;
-							case 'b':
-									context.current_room=am->world.first_room; print_room(); return;
-							default:
-									print_room();
+							case 'd': //alternative for 'c' (by convention)
+							case 'c': //create scenario
+								opt_edit.dst=ops::makeRoom(am);
+								ops::editOption(am,context.current_room,iter.first,opt_edit);
+								ops::editRoomTitle(am,opt_edit.dst,opt_edit.option_text);
+								context.current_room=opt_edit.dst;
+								mode=EDIT_ROOM;
+									break;
+							case 'r': //pick another option
+								print_room();
+								return;
+							case 'e': //drop into edit mode
+								mode=EDIT_ROOM;
+								return;
+							case 'b': //restart
+								context.current_room=am->world.first_room;
+								print_room();
+								return;
+							default: //cancel
+								print_room();
 						}
-					}
-					else {
+						return;
+					} else { //follow link
 						context.current_room=iter.second.dst;
 						context::saveContext(context,am->path+"context.txt");
 						print_room();
@@ -417,8 +477,10 @@ void ConsoleUI::playCurrentRoom() {
 					return;
 				}
 			}
+			//no option of given number
+			print("Invalid option number");
 		}
-		//user failed!
+		//user selected improper option
 		print("Nope. Press [h] for help, or [r]eread the descriptive text above.\n");
 		goto user_failed;
 	}

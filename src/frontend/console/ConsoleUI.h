@@ -21,6 +21,7 @@ struct push_cred;
 }
 namespace ui {
 
+//! quick-and-dirty console-based user interface
 class ConsoleUI {
 public:
 	ConsoleUI();
@@ -56,6 +57,7 @@ private:
 	model::rm_id_t inputRoom();
 
 	//! allows user to edit model
+	//! user makes changes to the current room viewed (context::current_room)
 	void editCurrentRoom();
 
 	//! allows user to edit options of current scenario
