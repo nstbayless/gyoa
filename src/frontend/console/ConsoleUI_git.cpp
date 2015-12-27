@@ -61,7 +61,7 @@ void ConsoleUI::editGit() {
 				}
 			}
 
-			//not a new source, routine pull:
+			//not a new source; routine pull
 			if (ops::savePending(am)) {
 				print("Saved changes pending. Save changes now [s], or [a]bort?");
 				switch (input()) {
@@ -78,6 +78,10 @@ void ConsoleUI::editGit() {
 			print("\nType [h] for help.");
 			continue;
 		case 'u': //push
+			if (context.upstream_url.length()<2) {
+				print("no rem[o]te repository set.");
+				continue;
+			}
 			if (ops::savePending(am)) {
 				print("Saved changes pending. Save changes now [s], or [a]bort?");
 				switch (input()) {
@@ -96,14 +100,15 @@ void ConsoleUI::editGit() {
 			gitops::init(am);
 			gitops::stageAndCommit(am,context,s);
 			print("Merging before upload...");
-			if (pullAndMerge()) {
-				if (getCredentials(cred)) {
-					print("aborting push");
-					continue;
-				}
+			if (pullAndMerge(&cred)) {
+				if (cred.credtype==gitops::push_cred::NONE)
+					if (getCredentials(cred)) {
+						print("aborting push");
+						continue;
+					}
 				//push:
 				print ("Connecting. Press enter to kill");
-				gitops::push(am,context, cred, [](void* varg)->bool {
+				gitops::push(am,context, cred, 4, [](void* varg)->bool {
 					ConsoleUI* ui = (ConsoleUI*)varg;
 					while (true) {
 						ui->input();
@@ -114,7 +119,7 @@ void ConsoleUI::editGit() {
 					if (success)
 						ui->print("push successful! Press [enter] to continue.");
 					else
-						ui->print("push failure");
+						ui->print("push failure. " + gitops::gitError() + "\nPress [enter] to continue.");
 				},this);
 			}
 			else
@@ -147,7 +152,7 @@ void ConsoleUI::editGit() {
 int ConsoleUI::getCredentials(gitops::push_cred& cred) {
 	std::string username="";
 	std::string pass="";
-	if (!context.upstream_url.substr(0, 4).compare("http")) {
+	if (context.upstream_url.find("@")==std::string::npos) {
 		print("HTTPS connection.");
 		//retrieve existing credentials:
 		if (!context.git_authentication_prefs.do_not_store&&
@@ -171,8 +176,7 @@ int ConsoleUI::getCredentials(gitops::push_cred& cred) {
 		//offer to store creds:
 		if (!context.git_authentication_prefs.do_not_store
 				&& !context.git_authentication_prefs.user_name.length()) {
-			print(
-					"Would you like to store your username for future use? [y/n]");
+			print("Would you like to store your username for future use? [y/n]");
 			if (input() == 'y')
 				context.git_authentication_prefs.user_name=username;
 			else {
@@ -249,14 +253,15 @@ int ConsoleUI::getCredentials(gitops::push_cred& cred) {
 }
 
 bool ConsoleUI::tryFetch(gitops::push_cred* cred_) {
-	if (!gitops::fetch(am,context)) {
+	assert(context.upstream_url.length()>1);
+	if (!gitops::fetch(am,context,4)) {
 		print("Authentication required to download world.");
 		gitops::push_cred cred;
 		if (getCredentials(cred))
 			return false;
 		if (cred_)
 			*cred_=cred;
-		return gitops::fetch(am,context,cred);
+		return gitops::fetch(am,context,cred,4);
 	}
 	return true;
 }
@@ -265,9 +270,9 @@ const std::string CONFLICT_START = "CONFLICT->>";
 const std::string CONFLICT_SEPARATOR = "|<-remote : local->|";
 const std::string CONFLICT_END = "<<-CONFLICT";
 
-bool ConsoleUI::pullAndMerge() {
+bool ConsoleUI::pullAndMerge(gitops::push_cred* cred) {
 	assert(!ops::savePending(am));
-	if (!tryFetch()) {
+	if (!tryFetch(cred)) {
 		print("Error fetching from source. Aborting pull.");
 		return false;
 	}

@@ -73,7 +73,8 @@ private:
 	//! pulls and merges, asks user for input if there are conflicts.
 	//! All changes should be committed first.
 	//! returns true if successful
-	bool pullAndMerge();
+	//! uses given creds, and updates them if modified by user
+	bool pullAndMerge(gitops::push_cred* cred_=nullptr);
 
 	//! first fetches without authentication. Then attempts
 	//! by asking user for cred.

@@ -26,7 +26,9 @@ namespace FileIO {
 	//! collection of file IO methods.
 
 	//! retrieves canonical paths to all files within the given directory (non-recursive)
-	std::vector<std::string> getAllFiles(std::string directory);
+	//! valid_name: callback function. Returns true given the filename to indicate file should be included.
+	//! (if no function provided, all files are included.
+	std::vector<std::string> getAllFiles(std::string directory, bool (*valid_name)(const std::string)=[](const std::string){return true;});
 	//! retrieves name of file from longer path.
 	std::string getFilename(std::string filepath);
 	bool fileExists(std::string path);

@@ -93,6 +93,7 @@ struct MergeResult {
 
 struct push_cred {
 	enum {
+		NONE,		//!< uninitialized
 		USERNAME,	//!< just a username [a]
 		PLAINTEXT,	//!< username [a] and password [b]
 		SSH,		//!< path to private ssh key [c] and public [d] and username [a] and passphrase [b]
@@ -129,13 +130,25 @@ void clone(gyoa::model::ActiveModel*,context::context_t&);
 void stageAndCommit(gyoa::model::ActiveModel*,context::context_t&,std::string message);
 
 //! fetches changes, but does not update world.
+//! maxtries: maximum number of connection attempts (-1 for unbounded)
 //! returns false if error, true on success
 //! credentials used to authenticate connection
-bool fetch(gyoa::model::ActiveModel*,context::context_t&, push_cred credentials);
+//! push_kill_callback: returns 1 to cancel the fetch.
+//! completed_callback: called when git disconnects from server,
+//! varg: supplied to callbacks
+bool fetch(gyoa::model::ActiveModel*,context::context_t&, push_cred credentials,int maxtries=4,bool (*push_kill_callback)(void*)=[](void*){return false;},void completed_callback(bool success,void*)=[](bool,void*){return;},void* varg=nullptr);
 
 //! fetches changes, but does not update world.
 //! returns false if error, true on success
-bool fetch(gyoa::model::ActiveModel*,context::context_t&);
+bool fetch(gyoa::model::ActiveModel*,context::context_t&,int maxtries=4,bool (*push_kill_callback)(void*)=[](void*){return false;},void completed_callback(bool success,void*)=[](bool,void*){return;},void* varg=nullptr);
+
+//! pushes commits to origin, returns true if successful
+//! maxtries: maximum number of connection attempts (-1 for unbounded)
+//! push_kill_callback: returns 1 to cancel the push.
+//! completed_callback: called when git disconnects from server,
+//! success is true if succesfully pushed.
+//! varg: supplied to callbacks
+bool push(gyoa::model::ActiveModel*,context::context_t&,push_cred credentials,int maxtries=4, bool (*push_kill_callback)(void*)=[](void*){return false;},void completed_callback(bool success,void*)=[](bool,void*){return;},void* varg=nullptr);
 
 //! returns true if common history exists with most recently-fetched branch
 bool commonHistoryExists(gyoa::model::ActiveModel*,context::context_t&);
@@ -146,18 +159,10 @@ bool commonHistoryExists(gyoa::model::ActiveModel*,context::context_t&);
 //! or empty list if mergy style is not MANUAL)
 MergeResult merge(gyoa::model::ActiveModel*,merge_style,context::context_t&);
 
-//! pushes commits to origin, returns true if successful
-//! push_kill_callback is a function that returns 1 to cancel the push.
-//! interrupt: completed_callback() called when git disconnects from server,
-//! success is true if succesfully pushed.
-//! varg: supplied to callbacks
-bool push(gyoa::model::ActiveModel*,context::context_t&,push_cred credentials,bool (*push_kill_callback)(void*)=[](void*){return false;},void completed_callback(bool success,void*)=[](bool,void*){return;},void* varg=nullptr);
+//! retrieves git error text
+std::string gitError();
 
 //=====================INTERNAL METHODS=====================//
-
-/** pushes directly; provides no means for interrupt
- *  INTERNAL*/
-bool push_direct(gyoa::model::ActiveModel*,context::context_t& context, push_cred credentials,bool* kill);
 
 //! tree for current revisions. Similar to git add --all.
 //! INTERNAL

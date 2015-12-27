@@ -15,14 +15,14 @@ namespace context {
 
 context_t loadContext(std::string data_dir) {
 	try {
-	return FileIO::loadContext(data_dir+"context.txt");
+	return FileIO::loadContext(data_dir);
 	} catch (FileNotFoundException& e) {
 		return context::context_t();
 	}
 }
 
-void saveContext(context_t context, std::string data_dir) {
-	FileIO::writeContext(context,data_dir+"context.txt");
+void saveContext(context_t context, std::string path) {
+	FileIO::writeContext(context,path);
 }
 
 } /* namespace context */

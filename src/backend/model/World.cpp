@@ -65,7 +65,8 @@ bool roomExists(ActiveModel* am, rm_id_t id) {
 room_t& getRoom(ActiveModel* am, rm_id_t id) {
 	assert (!id.is_null());
 	if (am->world.rooms.count(id))
-		return am->world.rooms[id];
+		if (am->world.rooms[id].loaded)
+			return am->world.rooms[id];
 	am->world.rooms[id]=FileIO::loadRoom(rm_id_to_filename(id,am->path));
 	return am->world.rooms[id];
 }

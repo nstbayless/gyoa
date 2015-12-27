@@ -39,11 +39,11 @@ struct context_t {
 	} git_authentication_prefs;
 };
 
-//! loads user context information (which room currently in, etc.)
-context_t loadContext(std::string dir);
+//! loads user context information (which room currently in, etc.) from the given file
+context_t loadContext(std::string path);
 
-//! saves user context information (current room, username, etc.)
-void saveContext(context_t, std::string dir);
+//! saves user context information (current room, username, etc.) to the given file
+void saveContext(context_t, std::string path);
 
 } /* namespace context */
 } /* namespace gyoa */

@@ -50,9 +50,12 @@ void ConsoleUI::start() {
 		print("No world found. Creating new world instead...");
 		if (model::directoryInUse(def_path)){
 			print("Directory \"" + def_path + "\"already in use. Aborting.");
+			//pause
+			input(false);
 			goto EXIT;
 		}
 		am=model::makeModel(def_path);
+		newly_created=true;
 	}
 
 PICK_MODE:
@@ -78,13 +81,13 @@ PICK_MODE:
 		//play mode
 		mode=PLAY;
 		clear();
-		FixContextIfRoomIsNull();
-		print_room();
+		if (!FixContextIfRoomIsNull())
+			print_room();
 	} else if (choice=='q') {
 		//quit
 		mode=QUIT;
 		goto EXIT;
-	} else if (choice=='d'&&git_pull_reqd) {
+	} else if (choice=='d'&&git_pull_reqd&&context.upstream_url.size()>0) {
 		//download (routine)
 
 		//save, initialize git, stage&commit, merge.
@@ -165,7 +168,8 @@ PICK_MODE:
 
 EXIT:
 	print("Exiting game...");
-	model::freeModel(am);
+	if (am)
+		model::freeModel(am);
 	gitops::gitShutdown();
 	clear();
 }
@@ -427,8 +431,8 @@ void ConsoleUI::playCurrentRoom() {
 	switch(char c = input()){
 	case 'q': mode=QUIT; 						break; //quit game
 	case 'e': mode=EDIT_ROOM; 					break; //switch to edit mode
-	case 'b': context.current_room=
-			am->world.first_room; print_room(); break; //restart
+	case 'b': context.current_room=am->world.first_room;
+			print_room(); 						break; //restart
 	case 'r': print(""); print_room();			break; //display room text again
 	case 'h': print_help();						break; //display help
 	default:

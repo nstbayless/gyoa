@@ -10,6 +10,8 @@
 #include "git2/blob.h"
 #include "git2/clone.h"
 #include "git2/commit.h"
+#include "git2/errors.h"
+#include "git2/global.h"
 #include "git2/object.h"
 #include "git2/oid.h"
 #include "git2/refs.h"
@@ -21,7 +23,6 @@
 #include "git2/transport.h"
 #include "git2/tree.h"
 #include "git2/types.h"
-#include "git2.h"
 #include "stddef.h"
 #include <algorithm>
 #include <cassert>
@@ -32,10 +33,10 @@
 
 #include "../context/Context.h"
 #include "../error.h"
+#include "../fileio/FileIO.h"
 #include "../id_parse.h"
 #include "../model/Room.h"
 #include "../model/World.h"
-#include "../fileio/FileIO.h"
 #include "../ops/Operation.h"
 
 namespace gyoa {
@@ -157,7 +158,12 @@ void stageAndCommit(gyoa::model::ActiveModel* am,context::context_t& context,std
 	if (head)
 		parents[parent_count++]=head;
 
-	std::vector<std::string> paths=FileIO::getAllFiles(repo_dir);
+	std::vector<std::string> paths=FileIO::getAllFiles(repo_dir,
+			[](std::string filename)->bool{
+				if (!filename.compare("context.txt"))
+					return false;
+				return true;
+			});
 
 	git_tree* tree = setStaged(am,paths);
 
@@ -182,9 +188,20 @@ void stageAndCommit(gyoa::model::ActiveModel* am,context::context_t& context,std
 	git_signature_free(sig);
 }
 
+std::string gitError() {
+	auto err = giterr_last();
+	std::string description = "unknown error";
+	if (!err)
+		return "(?)" + description;
+	if (err->message)
+		description=err->message;
+	return "(" + std::to_string(err->klass) + ") " + description;
+}
+
 struct cred_payload {
 	push_cred& credentials;
 	bool* kill;
+	int tries;
 };
 
 int packbuilder_progress_cb(int stage, unsigned int current, unsigned int total, void *payload){
@@ -211,12 +228,16 @@ int text_cb(const char *str, int len, void *payload){
 
 int cred_cb(git_cred** cred, const char * url, const char * url_username, unsigned int, void* payload_void){
 	cred_payload* payload=(cred_payload*)payload_void;
+	if (payload->tries==0)
+		return -1;
+	if (payload->tries>0)
+		payload->tries--;
 	if (*payload->kill) {
 		return -1;
 	}
 
 	std::string username = payload->credentials.username.c_str();
-	if (username.length() == 0)
+	if (username.length() == 0 && url_username!= nullptr)
 		username = url_username;
 
 	switch (payload->credentials.credtype) {
@@ -245,14 +266,13 @@ int cert_check_cb(git_cert* cert, int valid, const char* host, void* payload){
 	return 1;
 }
 
-bool fetch(gyoa::model::ActiveModel* am,context::context_t& context,push_cred credentials) {
+bool fetch_direct(gyoa::model::ActiveModel* am,context::context_t& context,push_cred credentials,bool* kill,int tries){
 	assert(am);
 	git_remote* origin = getOrigin(am,context);
 	git_fetch_options opts = GIT_FETCH_OPTIONS_INIT;
 	opts.callbacks.credentials=cred_cb;
 	opts.callbacks.certificate_check=cert_check_cb;
-	bool kill=false;
-	cred_payload payload={credentials,&kill};
+	cred_payload payload={credentials,kill,tries};
 	opts.callbacks.payload=(void*)&payload;
 	opts.download_tags=GIT_REMOTE_DOWNLOAD_TAGS_NONE;
 	bool to_return = !git_remote_fetch(origin,
@@ -260,15 +280,99 @@ bool fetch(gyoa::model::ActiveModel* am,context::context_t& context,push_cred cr
 		&opts, /* options, empty for defaults */
 		NULL); /* reflog mesage, usually "fetch" or "pull", you can leave it NULL for "fetch" */
 	git_remote_free(origin);
-	if (!to_return)
-		std::cout<<giterr_last()->message<<"\n";
 	return to_return;
 }
 
-bool fetch(gyoa::model::ActiveModel* am,context::context_t& context) {
+bool fetch(gyoa::model::ActiveModel* am,context::context_t& context,push_cred credentials,int maxtries,
+		bool (*push_kill_callback)(void*),void completed_callback(bool success,void*),void* varg) {
+	//set to zero if t_helper returns, 1 if t_kill returns
+	bool completed=false;
+	bool returnval[2]={false,false};
+	bool kill=false;
+
+	std::thread t_helper([&] {
+		returnval[0]= fetch_direct(am,context,credentials,&kill,maxtries);
+		completed_callback(returnval[0],varg);
+	});
+
+	std::thread t_kill([&] {
+		if (push_kill_callback(varg)&&!completed) {
+			kill=true;
+			std::this_thread::yield();
+			returnval[1]=true;
+		} else
+			returnval[1]=false;
+	});
+
+	//wait for remote thread or kill signal
+	t_helper.join();
+	completed=true;
+	t_kill.join();
+	return returnval[0];
+}
+
+bool fetch(gyoa::model::ActiveModel* am,context::context_t& context,int maxtries,
+		bool (*push_kill_callback)(void*),
+		void completed_callback(bool success,void*),void* varg) {
 	assert(am);
 	push_cred credentials=make_push_cred_username("");
-	return fetch(am,context,credentials);
+	return fetch(am,context,credentials,maxtries,push_kill_callback,completed_callback,varg);
+}
+
+bool push_direct(gyoa::model::ActiveModel* am,context::context_t& context,push_cred credentials,bool* kill, int tries){
+	assert(am);
+	cred_payload payload={credentials,kill,tries};
+	git_remote* remote = getOrigin(am,context);
+	git_strarray refspecs;
+	git_remote_get_push_refspecs(&refspecs,remote);
+	if (refspecs.count==0)
+		//add default refspec
+		git_remote_add_push(am->repo,git_remote_name(remote), "refs/heads/master:refs/heads/master");
+	git_remote_free(remote);
+	remote=getOrigin(am,context);
+	git_push_options opts;
+	git_push_init_options(&opts,GIT_PUSH_OPTIONS_VERSION);
+	git_remote_init_callbacks(&opts.callbacks,GIT_REMOTE_CALLBACKS_VERSION);
+	opts.callbacks.credentials=cred_cb;
+	opts.callbacks.payload=(void*)&payload;
+	opts.callbacks.certificate_check=cert_check_cb;
+	opts.callbacks.sideband_progress=text_cb;
+	opts.callbacks.push_transfer_progress=push_progress_cb;
+	opts.callbacks.push_negotiation=push_negotiation_cb;
+	opts.callbacks.pack_progress=packbuilder_progress_cb;
+	opts.callbacks.transfer_progress=transfer_progress_cb;
+	git_remote_get_push_refspecs(&refspecs,remote);
+	bool to_return = !git_remote_push(remote,&refspecs,&opts);
+	git_remote_free(remote);
+	return to_return;
+}
+
+bool push(gyoa::model::ActiveModel* am,context::context_t& context, push_cred credentials,int maxtries,bool (*push_kill_callback)(void*), void (*disconnect_callback)(bool,void*),void* varg) {
+	assert(am);
+	//set to zero if t_helper returns, 1 if t_kill returns
+	bool completed=false;
+	bool returnval[2]={false,false};
+	bool kill=false;
+
+	std::thread t_helper([&]{
+		returnval[0]= push_direct(am,context,credentials,&kill,maxtries);
+		disconnect_callback(returnval[0],varg);
+	});
+
+	std::thread t_kill([&] {
+		if (push_kill_callback(varg)&&!completed) {
+			kill=true;
+			std::this_thread::yield();
+			returnval[1]=true;
+		} else
+			returnval[1]=false;
+	});
+
+	//wait for remote thread or kill signal
+	t_helper.join();
+	completed=true;
+	t_kill.join();
+	return returnval[0];
 }
 
 MergeResult merge(gyoa::model::ActiveModel* am,
@@ -394,7 +498,12 @@ MergeResult merge(gyoa::model::ActiveModel* am,
 	if (remote_commit)
 		parents[parent_n++]=remote_commit;
 
-	git_tree* tree = setStaged(am,FileIO::getAllFiles(am->path));
+	git_tree* tree = setStaged(am,FileIO::getAllFiles(am->path,
+			[](std::string filename)->bool {
+				if (!filename.compare("context.txt"))
+					return false;
+				return true;
+			}));
 
 	git_oid commit;
 
@@ -413,7 +522,10 @@ MergeResult merge(gyoa::model::ActiveModel* am,
 	git_oid oid_tag;
 
 	git_object* obj_commit;
-	git_object_lookup(&obj_commit,am->repo,git_commit_id(remote_commit),GIT_OBJ_COMMIT);
+	if (remote_commit)
+		git_object_lookup(&obj_commit,am->repo,git_commit_id(remote_commit),GIT_OBJ_COMMIT);
+	else //server empty
+		git_object_lookup(&obj_commit,am->repo,&commit,GIT_OBJ_COMMIT);
 
 	git_tag_create(
 			&oid_tag,
@@ -440,62 +552,6 @@ MergeResult merge(gyoa::model::ActiveModel* am,
 		git_commit_free(common_commit);
 
 	return to_return;
-}
-
-bool push_direct(gyoa::model::ActiveModel* am,context::context_t& context,push_cred credentials,bool* kill){
-	assert(am);
-	cred_payload payload={credentials,kill};
-	git_remote* remote = getOrigin(am,context);
-	git_strarray refspecs;
-	git_remote_get_push_refspecs(&refspecs,remote);
-	if (refspecs.count==0)
-		//add default refspec
-		git_remote_add_push(am->repo,git_remote_name(remote), "refs/heads/master:refs/heads/master");
-	git_remote_free(remote);
-	remote=getOrigin(am,context);
-	git_push_options opts;
-	git_push_init_options(&opts,GIT_PUSH_OPTIONS_VERSION);
-	git_remote_init_callbacks(&opts.callbacks,GIT_REMOTE_CALLBACKS_VERSION);
-	opts.callbacks.credentials=cred_cb;
-	opts.callbacks.payload=(void*)&payload;
-	opts.callbacks.certificate_check=cert_check_cb;
-	opts.callbacks.sideband_progress=text_cb;
-	opts.callbacks.push_transfer_progress=push_progress_cb;
-	opts.callbacks.push_negotiation=push_negotiation_cb;
-	opts.callbacks.pack_progress=packbuilder_progress_cb;
-	opts.callbacks.transfer_progress=transfer_progress_cb;
-	git_remote_get_push_refspecs(&refspecs,remote);
-	bool to_return = !git_remote_push(remote,&refspecs,&opts);
-	git_remote_free(remote);
-	return to_return;
-}
-
-bool push(gyoa::model::ActiveModel* am,context::context_t& context, push_cred credentials,bool (*push_kill_callback)(void*), void (*disconnect_interrupt)(bool,void*),void* varg) {
-	assert(am);
-	//set to zero if t_helper returns, 1 if t_kill returns
-	bool completed=false;
-	bool returnval[2]={false,false};
-	bool kill=false;
-
-	std::thread t_helper([&]{
-		returnval[0]= push_direct(am,context,credentials,&kill);
-		disconnect_interrupt(returnval[0],varg);
-	});
-
-	std::thread t_kill([&] {
-		if (push_kill_callback(varg)&&!completed) {
-			kill=true;
-			std::this_thread::yield();
-			returnval[1]=true;
-		} else
-			returnval[1]=false;
-	});
-
-	//wait for remote thread or kill signal
-	t_helper.join();
-	completed=true;
-	t_kill.join();
-	return returnval[0];
 }
 
 git_tree* setStaged(gyoa::model::ActiveModel* am,std::vector<std::string> paths) {

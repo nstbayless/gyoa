@@ -30,7 +30,7 @@
 
 using namespace gyoa;
 
-std::vector<std::string> gyoa::FileIO::getAllFiles(std::string directory) {
+std::vector<std::string> gyoa::FileIO::getAllFiles(std::string directory, bool (*valid_name)(const std::string)) {
 	using namespace boost::filesystem;
 	path p(directory);
 	std::vector<std::string> to_return;
@@ -38,7 +38,8 @@ std::vector<std::string> gyoa::FileIO::getAllFiles(std::string directory) {
 	for (directory_iterator iter(p); iter != end_itr; ++iter) {
 		// If it's not a directory, list it.
 		if (is_regular_file(iter->path()))
-			to_return.push_back(boost::filesystem::canonical(iter->path()).string());
+			if (valid_name(iter->path().filename().string()))
+				to_return.push_back(boost::filesystem::canonical(iter->path()).string());
 	}
 	return to_return;
 }
