@@ -15,6 +15,6 @@ const std::string meta::BUILD_DATE = 		__DATE__;
 const std::string meta::BUILD_TIME = 		__TIME__;
 const std::string meta::NAME_CONDENSED = 	"gyoa";
 const std::string meta::NAME_FULL = 		"Git-Your-Own-Adventure";
-const std::string meta::VERSION = 			"0.2";
+const std::string meta::VERSION = 			"0.3";
 
 }
