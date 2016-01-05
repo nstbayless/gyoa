@@ -12,9 +12,9 @@
 #include <iostream>
 #include <vector>
 
-#include "../../backend/git/GitOps.h"
-#include "../../backend/id_parse.h"
-#include "../../backend/model/Room.h"
+#include "gyoa/GitOps.h"
+#include "gyoa/id_parse.h"
+#include "gyoa/Room.h"
 #include "ConsoleUI.h"
 
 namespace gyoa { namespace ui {
@@ -323,7 +323,7 @@ bool ConsoleUI::pullAndMerge(gitops::push_cred* cred) {
 				*((std::string*)conflict.data_ptr)=conflict.local;
 				break;
 			case gitops::MergeConflict::ID:
-				*((model::id_type*) conflict.data_ptr) = parse_id(conflict.local);
+				*((model::id_type*) conflict.data_ptr) = parse_id(conflict.local.c_str());
 				break;
 			case gitops::MergeConflict::BOOL:
 				*((bool*) conflict.data_ptr) = conflict.local[0]-'0';
@@ -337,7 +337,7 @@ bool ConsoleUI::pullAndMerge(gitops::push_cred* cred) {
 				*((std::string*)conflict.data_ptr)=conflict.remote;
 				break;
 			case gitops::MergeConflict::ID:
-				*((model::id_type*) conflict.data_ptr) = parse_id(conflict.remote);
+				*((model::id_type*) conflict.data_ptr) = parse_id(conflict.remote.c_str());
 				break;
 			case gitops::MergeConflict::BOOL:
 				*((bool*) conflict.data_ptr) = conflict.remote[0]-'0';
@@ -351,7 +351,7 @@ bool ConsoleUI::pullAndMerge(gitops::push_cred* cred) {
 				*((std::string*)conflict.data_ptr)=conflict.common;
 				break;
 			case gitops::MergeConflict::ID:
-				*((model::id_type*) conflict.data_ptr) = parse_id(conflict.common);
+				*((model::id_type*) conflict.data_ptr) = parse_id(conflict.common.c_str());
 				break;
 			case gitops::MergeConflict::BOOL:
 				*((bool*) conflict.data_ptr) = conflict.common[0]-'0';

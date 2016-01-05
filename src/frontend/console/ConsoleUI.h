@@ -10,10 +10,10 @@
 
 #include <string>
 
-#include "../../backend/context/Context.h"
-#include "../../backend/model/Room.h"
-#include "../../backend/model/World.h"
-#include "../../backend/ops/Operation.h"
+#include "gyoa/Context.h"
+#include "gyoa/Room.h"
+#include "gyoa/World.h"
+#include "gyoa/Operation.h"
 
 namespace gyoa {
 namespace gitops {

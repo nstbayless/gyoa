@@ -5,7 +5,7 @@
  *      Author: n
  */
 
-#include "Operation.h"
+#include "gyoa/Operation.h"
 
 #include <cassert>
 #include <cstdlib>
@@ -13,11 +13,11 @@
 #include <string>
 #include <utility>
 
-#include "../context/Context.h"
-#include "../error.h"
-#include "../id_parse.h"
-#include "../model/Room.h"
-#include "../model/World.h"
+#include "gyoa/Context.h"
+#include "gyoa/error.h"
+#include "gyoa/id_parse.h"
+#include "gyoa/Room.h"
+#include "gyoa/World.h"
 #include "../fileio/FileIO.h"
 
 namespace gyoa {
@@ -129,6 +129,8 @@ std::string saveRoom(model::ActiveModel* activeModel,rm_id_t id) {
 	model::world_t* model = &activeModel->world;
 	assert(model);
 	assert(activeModel->path.length()>1);
+	assert(roomExists(activeModel,id));
+	assert(getRoom(activeModel,id).loaded);
 
 	std::string file=rm_id_to_filename(id,activeModel->path);
 	FileIO::writeRoomToFile(getRoom(activeModel,id),file);
@@ -167,7 +169,8 @@ std::string saveAll(model::ActiveModel* activeModel,bool force) {
 	}
 
 	for (auto iter : model->rooms)
-		if (iter.second.edited||force) {
+		if ((iter.second.edited||force)
+				&&iter.second.loaded) {
 			result+="saved scenario " + write_id(iter.first) + " to " + saveRoom(activeModel,iter.first)+"\n";
 			anything_saved=true;
 		}

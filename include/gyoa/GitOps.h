@@ -104,6 +104,8 @@ struct push_cred {
 	std::string pubkey="";
 };
 
+extern "C" {
+
 push_cred make_push_cred_username(std::string username);
 push_cred make_push_cred_plaintext(std::string username, std::string password);
 push_cred make_push_cred_ssh(std::string path_to_privkey, std::string path_to_pubkey, std::string username, std::string passphrase);
@@ -137,11 +139,13 @@ void stageAndCommit(gyoa::model::ActiveModel*,context::context_t&,std::string me
 //! completed_callback: called when git disconnects from server,
 //! varg: supplied to callbacks
 bool fetch(gyoa::model::ActiveModel*,context::context_t&, push_cred credentials,int maxtries=4,bool (*push_kill_callback)(void*)=[](void*){return false;},void completed_callback(bool success,void*)=[](bool,void*){return;},void* varg=nullptr);
+}
 
 //! fetches changes, but does not update world.
 //! returns false if error, true on success
 bool fetch(gyoa::model::ActiveModel*,context::context_t&,int maxtries=4,bool (*push_kill_callback)(void*)=[](void*){return false;},void completed_callback(bool success,void*)=[](bool,void*){return;},void* varg=nullptr);
 
+extern "C" {
 //! pushes commits to origin, returns true if successful
 //! maxtries: maximum number of connection attempts (-1 for unbounded)
 //! push_kill_callback: returns 1 to cancel the push.
@@ -161,6 +165,8 @@ MergeResult merge(gyoa::model::ActiveModel*,merge_style,context::context_t&);
 
 //! retrieves git error text
 std::string gitError();
+
+}
 
 //=====================INTERNAL METHODS=====================//
 

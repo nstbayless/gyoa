@@ -6,9 +6,9 @@
  */
 
 #include "../fileio/FileIO.h"
-#include "../error.h"
+#include "gyoa/error.h"
 
-#include "Context.h"
+#include "gyoa/Context.h"
 
 namespace gyoa {
 namespace context {

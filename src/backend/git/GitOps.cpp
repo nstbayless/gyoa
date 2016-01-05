@@ -5,7 +5,7 @@
  *      Author: n
  */
 
-#include "GitOps.h"
+#include "gyoa/GitOps.h"
 
 #include "git2/blob.h"
 #include "git2/clone.h"
@@ -31,13 +31,13 @@
 #include <map>
 #include <thread>
 
-#include "../context/Context.h"
-#include "../error.h"
+#include "gyoa/Context.h"
+#include "gyoa/error.h"
 #include "../fileio/FileIO.h"
-#include "../id_parse.h"
-#include "../model/Room.h"
-#include "../model/World.h"
-#include "../ops/Operation.h"
+#include "gyoa/id_parse.h"
+#include "gyoa/Room.h"
+#include "gyoa/World.h"
+#include "gyoa/Operation.h"
 
 namespace gyoa {
 namespace gitops {
@@ -68,7 +68,7 @@ int walk_cb(const char *root, const git_tree_entry *entry, void *dv) {
 		int ext_loc = filename.find(".txt");
 		assert(ext_loc!=std::string::npos);
 		std::string id_str = filename.substr(3,ext_loc);
-		model::id_type id = parse_id(id_str);
+		model::id_type id = parse_id(id_str.c_str());
 		model::room_t rm = FileIO::loadRoomFromText(output);
 		d.world.rooms[id]=rm;
 	} else if (!filename.compare("world.txt")) {

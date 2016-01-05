@@ -21,5 +21,13 @@ static const std::string NAME_FULL;
 static const std::string VERSION;
 
 };
+
+extern "C" {
+
+const char* getBuildDate();
+
+const char* getBuildTime();
+}
+
 }
 #endif /* META_H_ */

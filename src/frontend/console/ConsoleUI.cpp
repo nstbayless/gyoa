@@ -12,9 +12,9 @@
 #include <map>
 #include <utility>
 
-#include "../../backend/git/GitOps.h"
-#include "../../backend/id_parse.h"
-#include "../../meta.h"
+#include "gyoa/GitOps.h"
+#include "gyoa/id_parse.h"
+#include "gyoa/meta.h"
 
 
 namespace gyoa {
@@ -43,7 +43,7 @@ void ConsoleUI::start() {
 
 	if (model::directoryContainsModel(def_path)) {
 		print("World found! Loading world...");
-		am=model::loadModel(def_path);
+		am=model::loadModel(def_path.c_str());
 		print("World title \"" + am->world.title+"\"");
 		context=context::loadContext(def_path+"context.txt");
 	} else {
@@ -129,9 +129,9 @@ PICK_MODE:
 
 		//merge upstream into local repo
 		gitops::merge(am,gitops::FORCE_REMOTE,context);
-
-		//user selects a new option
 		print("Download successful.\n\nPress [h] for help.");
+
+		//user goes back to select a different option option
 		mode=META;
 		git_pull_reqd=false;
 		goto PICK_MODE;
@@ -155,6 +155,7 @@ PICK_MODE:
 					switch (input()) {
 					case 's':
 						print(ops::saveAll(am));
+						input(false);
 					case 'x':
 						goto EXIT;
 					default:
@@ -313,6 +314,7 @@ void ConsoleUI::editOptions() {
 				if (s.length()) {
 					//define option user is adding.
 					//gid.is_null() means the option goes nowhere by default.
+					opt = model::option_t();
 					opt.dst = model::opt_id_t::null();
 					opt.option_text=s;
 
@@ -335,9 +337,11 @@ void ConsoleUI::editOptions() {
 								break;
 							} else
 								opt.dst=input_id;
+							break;
 						case 'e': //continue editing
 							print_help(); break;
-						default: goto USER_FAILED;
+						default:
+							goto USER_FAILED;
 					}
 
 					//option is now defined to user's tastes; add to room
@@ -370,6 +374,7 @@ void ConsoleUI::editOptions() {
 			default:
 				it = c-'0';
 				if (it>0 && it<=9) { //edit an existing option:
+					opt = model::option_t();
 					input_id=model::getOption(rm,it);
 					if (input_id.is_null()) {
 						//invalid option input

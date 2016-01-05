@@ -5,8 +5,8 @@
  *      Author: n
  */
 
-#include "model/World.h"
-#include "error.h"
+#include "gyoa/World.h"
+#include "gyoa/error.h"
 
 void checkModelDirectory(gyoa::model::ActiveModel* am) {
 	if (!am->path.length()) {

@@ -5,13 +5,13 @@
  *      Author: n
  */
 
-#include "World.h"
+#include "gyoa/World.h"
 
 #include "git2/repository.h"
 #include <utility>
 #include "../fileio/FileIO.h"
 
-#include "../id_parse.h"
+#include "gyoa/id_parse.h"
 namespace gyoa {
 namespace model {
 
@@ -38,12 +38,12 @@ bool directoryInUse(std::string dir) {
 	return (!!FileIO::getAllFiles(dir).size());
 }
 
-ActiveModel* loadModel(std::string dir) {
+ActiveModel* loadModel(const char* dir) {
 	ActiveModel* am = new ActiveModel();
 	am->path=FileIO::getCanonicalPath(dir);
 	if (am->path.substr(am->path.length()-1).compare("/"))
 		am->path+="/";
-	am->world = FileIO::loadWorld(dir+"world.txt");
+	am->world = FileIO::loadWorld(am->path+"world.txt");
 	am->repo=nullptr;
 	return am;
 }
@@ -69,6 +69,14 @@ room_t& getRoom(ActiveModel* am, rm_id_t id) {
 			return am->world.rooms[id];
 	am->world.rooms[id]=FileIO::loadRoom(rm_id_to_filename(id,am->path));
 	return am->world.rooms[id];
+}
+
+const char* getRoomTitle(ActiveModel* am, rm_id_t id) {
+	return getRoom(am,id).title.c_str();
+}
+
+const char* getRoomBody(ActiveModel* am, rm_id_t id) {
+	return getRoom(am,id).body.c_str();
 }
 
 opt_id_t getOption(room_t& room, int n) {

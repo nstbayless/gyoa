@@ -5,7 +5,7 @@
  *      Author: n
  */
 
-#include "meta.h"
+#include "gyoa/meta.h"
 
 #include <string>
 
@@ -16,5 +16,13 @@ const std::string meta::BUILD_TIME = 		__TIME__;
 const std::string meta::NAME_CONDENSED = 	"gyoa";
 const std::string meta::NAME_FULL = 		"Git-Your-Own-Adventure";
 const std::string meta::VERSION = 			"0.3";
+
+const char* getBuildDate() {
+	return gyoa::meta::BUILD_DATE.c_str();
+}
+
+const char* getBuildTime() {
+	return gyoa::meta::BUILD_TIME.c_str();
+}
 
 }

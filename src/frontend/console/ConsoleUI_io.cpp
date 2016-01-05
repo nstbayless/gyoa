@@ -17,8 +17,8 @@
 #include <utility>
 #include <vector>
 
-#include "../../backend/id_parse.h"
-#include "../../backend/model/Room.h"
+#include "gyoa/id_parse.h"
+#include "gyoa/Room.h"
 #include "ConsoleUI.h"
 
 namespace gyoa {
@@ -65,7 +65,7 @@ model::rm_id_t ConsoleUI::inputRoom() {
 	}
 
 	if (f!=std::string::npos) {
-		auto id = parse_id(s);
+		auto id = parse_id(s.c_str());
 		if (am->world.rooms.count(id)) {
 			print("selected id " + write_id(id));
 			return id;

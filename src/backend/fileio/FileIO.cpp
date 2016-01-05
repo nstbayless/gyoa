@@ -22,11 +22,11 @@
 #include <utility>
 #include <vector>
 
-#include "../context/Context.h"
-#include "../error.h"
-#include "../id_parse.h"
-#include "../model/Room.h"
-#include "../model/World.h"
+#include "gyoa/Context.h"
+#include "gyoa/error.h"
+#include "gyoa/id_parse.h"
+#include "gyoa/Room.h"
+#include "gyoa/World.h"
 
 using namespace gyoa;
 
@@ -349,5 +349,7 @@ bool gyoa::FileIO::fileExists(std::string path) {
 }
 
 std::string gyoa::FileIO::getCanonicalPath(std::string path) {
+	if (!path.substr(0,1).compare("~"))
+		path=getenv("HOME")+path.substr(1);
 	return boost::filesystem::canonical(boost::filesystem::path(path)).string();
 }

@@ -9,7 +9,7 @@
 #define BACKEND_OPS_OPERATION_H_
 
 #include <string>
-#include "../context/Context.h"
+#include "gyoa/Context.h"
 
 namespace gyoa {
 namespace model {
@@ -24,6 +24,7 @@ namespace ops {
 	using rm_id_t=model::id_type;
 	using opt_id_t=model::id_type;
 
+extern "C" {
 	//! creates a room, incrementing world_t::next_gid and generating random rid.
 	//! room is added to model.
 	rm_id_t makeRoom(model::ActiveModel*);
@@ -62,6 +63,8 @@ namespace ops {
 
 	//! returns true if model information has been edited since last save
 	bool savePending(model::ActiveModel*);
+}
+
 } /* namespace ops */
 } /* namespace gyoa */
 

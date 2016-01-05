@@ -56,6 +56,8 @@ private:
 	ActiveModel (const ActiveModel&) = delete;
 };
 
+extern "C" {
+
 //! creates a new model (with default parameters). Must be freed with freeModel()
 ActiveModel* makeModel(std::string directory);
 
@@ -70,7 +72,7 @@ bool directoryInUse(std::string dir);
 
 //! loads the model from the given directory (creating a new model if no model is saved there)
 //! should be freed with freeModel
-ActiveModel* loadModel(std::string dir);
+ActiveModel* loadModel(const char* dir);
 
 //! preloads all rooms (rather than loading them on-the-fly)
 //! returns number of rooms loaded
@@ -83,6 +85,9 @@ bool roomExists(ActiveModel*,rm_id_t);
 //! should not be modified (will be const in future versions)
 room_t& getRoom(ActiveModel*,rm_id_t);
 
+const char* getRoomTitle(ActiveModel*,rm_id_t);
+const char* getRoomBody(ActiveModel*,rm_id_t);
+
 //! retrieves nth option by id from given room, where n is from 1 to 9.
 //! returns opt_id_t::null() if no option found.
 //! should not be modified (will be const in future versions)
@@ -90,6 +95,8 @@ opt_id_t getOption(room_t& room, int n);
 
 //! returns path to the given room
 std::string rm_id_to_filename(rm_id_t id, std::string root_dir);
+
+}
 
 }
 }
