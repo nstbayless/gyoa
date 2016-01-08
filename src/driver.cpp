@@ -7,8 +7,11 @@
 
 #include "frontend/console/ConsoleUI.h"
 
-int main() {
+int main(int arg_c, char** arg_v) {
 	using namespace gyoa::model;
 	gyoa::ui::ConsoleUI cui;
-	cui.start();
+	if (arg_c>1)
+		cui.start(arg_v[1]);
+	else
+		cui.start();
 }

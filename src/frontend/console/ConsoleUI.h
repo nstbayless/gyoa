@@ -28,7 +28,7 @@ public:
 	virtual ~ConsoleUI();
 
 	//! starts ui loop
-	void start();
+	void start(std::string path="data/");
 public:
 	//! gets input from user
 	char input(bool prompt=true);

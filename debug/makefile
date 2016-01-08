@@ -48,19 +48,19 @@ endif
 all: pre-build main-build
 
 # Main-build Target
-main-build: libgyoa.so
+main-build: gyoa
 
 # Tool invocations
-libgyoa.so: $(OBJS) $(USER_OBJS)
+gyoa: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: Cross G++ Linker'
-	g++ -shared -o "libgyoa.so" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++  -o "gyoa" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(C++_DEPS)$(OBJS)$(C_DEPS)$(CC_DEPS)$(LIBRARIES)$(CPP_DEPS)$(CXX_DEPS)$(C_UPPER_DEPS) libgyoa.so
+	-$(RM) $(C++_DEPS)$(OBJS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) gyoa
 	-@echo ' '
 
 pre-build:

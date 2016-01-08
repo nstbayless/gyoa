@@ -118,6 +118,7 @@ model::room_t FileIO::loadRoom(std::string filename)  {
 model::room_t gyoa::FileIO::loadRoomFromText(std::string text) {
 	using namespace rapidxml;
 	model::room_t rm_import;
+	rm_import.loaded=true;
 	xml_document<> doc;
 	doc.parse<0>(&text[0]);
 	xml_node<>* nd_rm = doc.first_node("room");

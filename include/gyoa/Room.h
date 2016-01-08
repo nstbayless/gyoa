@@ -31,8 +31,16 @@ struct id_type {
 		return { -1, -1 };
 	}
 
+	static id_type err() {
+		return {-1, -2};
+	}
+
 	bool is_null() const {
-		return gid == -1;
+		return gid == -1 && rid==-1;
+	}
+
+	bool is_err() const {
+		return gid == -1&&rid==-2;
 	}
 
 	bool operator==(const id_type& other) const {

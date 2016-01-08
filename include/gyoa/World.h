@@ -85,13 +85,25 @@ bool roomExists(ActiveModel*,rm_id_t);
 //! should not be modified (will be const in future versions)
 room_t& getRoom(ActiveModel*,rm_id_t);
 
+//! retrieves title of room (loading it if necessary)
 const char* getRoomTitle(ActiveModel*,rm_id_t);
+
+//retrieves body text of room (loading it if necessary)
 const char* getRoomBody(ActiveModel*,rm_id_t);
 
-//! retrieves nth option by id from given room, where n is from 1 to 9.
+//retrieves number of options in the given room (loading it if necessary)
+const int getOptionCount(ActiveModel*,rm_id_t);
+
+//!retrieves descriptive text of the o-th option in the given room
+const char* getOptionDescription(ActiveModel*,rm_id_t,int o);
+
+//!retrieves destination for the o-th option in the given room
+rm_id_t getOptionDestination(ActiveModel*,rm_id_t,int o);
+
+//! retrieves nth option id by id from given room, where n is from 0 to 8.
 //! returns opt_id_t::null() if no option found.
 //! should not be modified (will be const in future versions)
-opt_id_t getOption(room_t& room, int n);
+opt_id_t getOptionID(ActiveModel*,rm_id_t, int n);
 
 //! returns path to the given room
 std::string rm_id_to_filename(rm_id_t id, std::string root_dir);

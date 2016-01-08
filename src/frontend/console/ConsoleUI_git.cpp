@@ -31,7 +31,7 @@ void ConsoleUI::editGit() {
 		case 's':
 			print(ops::saveAll(am)); continue;
 		case 'd': //pull
-			gitops::init(am);
+			gitops::initRepo(am);
 			if (!tryFetch()){
 				print("Error fetching from source. Aborting pull.");
 				continue;
@@ -45,7 +45,7 @@ void ConsoleUI::editGit() {
 					model::freeModel(am);
 					am=model::makeModel(path);
 					gitops::obliterate(am);
-					gitops::init(am);
+					gitops::initRepo(am);
 					context::saveContext(context,am->path+"context.txt");
 					print("fetching from " + context.upstream_url);
 					if (!tryFetch()) {
@@ -97,8 +97,8 @@ void ConsoleUI::editGit() {
 			s=inputString();
 			if (s.size()==0)
 				s="Default commit message.";
-			gitops::init(am);
-			gitops::stageAndCommit(am,context,s);
+			gitops::initRepo(am);
+			gitops::stageAndCommit(am,context,s.c_str());
 			print("Merging before upload...");
 			if (pullAndMerge(&cred)) {
 				if (cred.credtype==gitops::push_cred::NONE)
@@ -133,7 +133,7 @@ void ConsoleUI::editGit() {
 				print("Cancelled.");
 				continue;
 			}
-			gitops::init(am);
+			gitops::initRepo(am);
 			context.upstream_url=s;
 			context::saveContext(context,am->path+"context.txt");
 			print("Upstream repository set to "+ s);
@@ -254,14 +254,14 @@ int ConsoleUI::getCredentials(gitops::push_cred& cred) {
 
 bool ConsoleUI::tryFetch(gitops::push_cred* cred_) {
 	assert(context.upstream_url.length()>1);
-	if (!gitops::fetch(am,context,4)) {
+	if (!gitops::fetchRepo(am,context,4)) {
 		print("Authentication required to download world.");
 		gitops::push_cred cred;
 		if (getCredentials(cred))
 			return false;
 		if (cred_)
 			*cred_=cred;
-		return gitops::fetch(am,context,cred,4);
+		return gitops::fetchRepo(am,context,cred,4);
 	}
 	return true;
 }

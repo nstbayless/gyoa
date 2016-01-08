@@ -110,27 +110,34 @@ push_cred make_push_cred_username(std::string username);
 push_cred make_push_cred_plaintext(std::string username, std::string password);
 push_cred make_push_cred_ssh(std::string path_to_privkey, std::string path_to_pubkey, std::string username, std::string passphrase);
 
-void gitInit();
-void gitShutdown();
+void libgitInit();
+void libgitShutdown();
 
-//! returns true if the repo already is a repository (and is root of repo)
+//! returns true if the path of the ActiveModel already is
+//! a repository (and is root of repo, containing .git subfolder)
 bool isRepo(gyoa::model::ActiveModel*);
 
 //! initializes git repository in repo_dir
-void open(gyoa::model::ActiveModel*);
+void openRepo(gyoa::model::ActiveModel*);
 
 //! initializes empty git repository in repo_dir
-void init(gyoa::model::ActiveModel*);
+void initRepo(gyoa::model::ActiveModel*);
 
 //! erases git directory
 void obliterate(gyoa::model::ActiveModel*);
 
 //! clones git repo from upstream url to repo_dir
-void clone(gyoa::model::ActiveModel*,context::context_t&);
+void cloneRepo(gyoa::model::ActiveModel*,context::context_t&);
+
+//! commits all saved edits with the given commit message and user info.
+void stageAndCommit(gyoa::model::ActiveModel*,const char* username, const char* email, const char* message);
+
+}
 
 //! commits all saved edits with the given commit message.
-void stageAndCommit(gyoa::model::ActiveModel*,context::context_t&,std::string message);
+void stageAndCommit(gyoa::model::ActiveModel*,context::context_t&,const char* message);
 
+extern "C" {
 //! fetches changes, but does not update world.
 //! maxtries: maximum number of connection attempts (-1 for unbounded)
 //! returns false if error, true on success
@@ -138,12 +145,12 @@ void stageAndCommit(gyoa::model::ActiveModel*,context::context_t&,std::string me
 //! push_kill_callback: returns 1 to cancel the fetch.
 //! completed_callback: called when git disconnects from server,
 //! varg: supplied to callbacks
-bool fetch(gyoa::model::ActiveModel*,context::context_t&, push_cred credentials,int maxtries=4,bool (*push_kill_callback)(void*)=[](void*){return false;},void completed_callback(bool success,void*)=[](bool,void*){return;},void* varg=nullptr);
+bool fetchRepo(gyoa::model::ActiveModel*,context::context_t&, push_cred credentials,int maxtries=4,bool (*push_kill_callback)(void*)=[](void*){return false;},void completed_callback(bool success,void*)=[](bool,void*){return;},void* varg=nullptr);
 }
 
 //! fetches changes, but does not update world.
 //! returns false if error, true on success
-bool fetch(gyoa::model::ActiveModel*,context::context_t&,int maxtries=4,bool (*push_kill_callback)(void*)=[](void*){return false;},void completed_callback(bool success,void*)=[](bool,void*){return;},void* varg=nullptr);
+bool fetchRepo(gyoa::model::ActiveModel*,context::context_t&,int maxtries=4,bool (*push_kill_callback)(void*)=[](void*){return false;},void completed_callback(bool success,void*)=[](bool,void*){return;},void* varg=nullptr);
 
 extern "C" {
 //! pushes commits to origin, returns true if successful

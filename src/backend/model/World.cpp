@@ -9,6 +9,7 @@
 
 #include "git2/repository.h"
 #include <utility>
+#include <iostream>
 #include "../fileio/FileIO.h"
 
 #include "gyoa/id_parse.h"
@@ -79,13 +80,29 @@ const char* getRoomBody(ActiveModel* am, rm_id_t id) {
 	return getRoom(am,id).body.c_str();
 }
 
-opt_id_t getOption(room_t& room, int n) {
+const int getOptionCount(ActiveModel* am, rm_id_t id) {
+	return getRoom(am,id).options.size();
+}
+
+const char* getOptionDescription(ActiveModel* am, rm_id_t id, int o) {
+	auto& room = getRoom(am,id);
+	const char* text = room.options[getOptionID(am,id,o)].option_text.c_str();
+	return text;
+}
+
+rm_id_t getOptionDestination(ActiveModel* am, rm_id_t id, int o) {
+	return getRoom(am,id).options[getOptionID(am,id,o)].dst;
+}
+
+opt_id_t getOptionID(ActiveModel* am,rm_id_t id, int N) {
 	{
+		auto& room = getRoom(am,id);
+		int n=N;
 		for (auto iter : room.options) {
-			n -= 1;
 			if (n == 0) {
 				return iter.first;
 			}
+			n -= 1;
 		}
 		return opt_id_t::null();
 	}

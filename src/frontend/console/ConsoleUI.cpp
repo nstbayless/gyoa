@@ -26,14 +26,13 @@ ConsoleUI::ConsoleUI() {
 ConsoleUI::~ConsoleUI() {
 }
 
-void ConsoleUI::start() {
+void ConsoleUI::start(std::string path) {
 	clear();
 	print("Welcome to " + meta::NAME_FULL+"!");
 	print("Built: "+meta::BUILD_DATE +" at " + meta::BUILD_TIME);
-	system("mkdir data 2> /dev/null");
-	gitops::gitInit();
+	system(std::string("mkdir " + path+ " 2> /dev/null").c_str());
+	gitops::libgitInit();
 	print("\nloading world...");
-	std::string def_path="data/";
 
 	//! a download is recommended
 	bool git_pull_reqd=true;
@@ -41,20 +40,20 @@ void ConsoleUI::start() {
 	bool newly_created=false;
 	char choice;
 
-	if (model::directoryContainsModel(def_path)) {
+	if (model::directoryContainsModel(path)) {
 		print("World found! Loading world...");
-		am=model::loadModel(def_path.c_str());
+		am=model::loadModel(path.c_str());
 		print("World title \"" + am->world.title+"\"");
-		context=context::loadContext(def_path+"context.txt");
+		context=context::loadContext(path+"context.txt");
 	} else {
 		print("No world found. Creating new world instead...");
-		if (model::directoryInUse(def_path)){
-			print("Directory \"" + def_path + "\"already in use. Aborting.");
+		if (model::directoryInUse(path)){
+			print("Directory \"" + path + "\" already in use. Aborting.");
 			//pause
 			input(false);
 			goto EXIT;
 		}
-		am=model::makeModel(def_path);
+		am=model::makeModel(path);
 		newly_created=true;
 	}
 
@@ -92,7 +91,7 @@ PICK_MODE:
 
 		//save, initialize git, stage&commit, merge.
 		ops::saveAll(am);
-		gitops::init(am);
+		gitops::initRepo(am);
 		gitops::stageAndCommit(am,context,"pre-pull commit");
 		pullAndMerge();
 
@@ -105,7 +104,7 @@ PICK_MODE:
 		//download (first time)
 
 		//initialize git repo if necessary
-		gitops::init(am);
+		gitops::initRepo(am);
 
 		//user enters URL
 		print("Please enter a URL for the upstream repository, e.g. "
@@ -171,7 +170,7 @@ EXIT:
 	print("Exiting game...");
 	if (am)
 		model::freeModel(am);
-	gitops::gitShutdown();
+	gitops::libgitShutdown();
 	clear();
 }
 
@@ -226,7 +225,7 @@ void ConsoleUI::editCurrentRoom() {
 							+ "\nEnter a new title (blank to cancel):");
 			std::string s = inputString();
 			if (s.length())
-				ops::editRoomTitle(am, id, s);
+				ops::editRoomTitle(am, id, s.c_str());
 			print("\n ## " + rm.title + " ##\n\n");
 			if (s.length()) {
 				print(
@@ -236,7 +235,7 @@ void ConsoleUI::editCurrentRoom() {
 		case 't': { //edit room body text
 			std::string s=edit_text(rm.body);
 			if (s.length()) {
-				ops::editRoomBody(am,id,s);
+				ops::editRoomBody(am,id,s.c_str());
 				//todo: compare to see if edited at all.
 				print("body text edited. (Don't forget to [s]ave.). Press [r] to review.\n");
 			}
@@ -326,7 +325,7 @@ void ConsoleUI::editOptions() {
 								  //for c by convention
 						case 'c': //create scenario (switch to edit_room mode)
 							context.current_room=opt.dst=ops::makeRoom(am);
-							ops::editRoomTitle(am,opt.dst,opt.option_text);
+							ops::editRoomTitle(am,opt.dst,opt.option_text.c_str());
 							mode=EDIT_ROOM;
 							break;
 						case 'l': //link to an existing room
@@ -345,7 +344,7 @@ void ConsoleUI::editOptions() {
 					}
 
 					//option is now defined to user's tastes; add to room
-					ops::addOption(am,id,opt);
+					ops::addOption(am,id,opt.option_text.c_str(),opt.dst);
 					print_help();
 
 					// return to room_edit func if mode was changed above
@@ -358,7 +357,7 @@ void ConsoleUI::editOptions() {
 				print("remove which option? Enter number (0 to cancel)");
 				it = input()-'0';
 				if (it>0 && it<=9) {
-					input_id=model::getOption(model::getRoom(am,id),it);
+					input_id=model::getOptionID(am,id,it-1);
 
 					if (input_id.is_null()) {
 						//invalid option input:
@@ -375,7 +374,7 @@ void ConsoleUI::editOptions() {
 				it = c-'0';
 				if (it>0 && it<=9) { //edit an existing option:
 					opt = model::option_t();
-					input_id=model::getOption(rm,it);
+					input_id=model::getOptionID(am,context.current_room,it-1);
 					if (input_id.is_null()) {
 						//invalid option input
 						print("\nNo such option exists to edit, but you can [a]dd it if you prefer.");
@@ -404,7 +403,7 @@ void ConsoleUI::editOptions() {
 						case 'd': //create new destination for option
 							context.current_room=opt.dst=ops::makeRoom(am);
 							ops::editOption(am,id, input_id, opt);
-							ops::editRoomTitle(am,opt.dst,opt.option_text);
+							ops::editRoomTitle(am,opt.dst,opt.option_text.c_str());
 
 							//return to edit mode (at new destination room)
 							mode=EDIT_ROOM;
@@ -460,7 +459,7 @@ void ConsoleUI::playCurrentRoom() {
 							case 'c': //create scenario
 								opt_edit.dst=ops::makeRoom(am);
 								ops::editOption(am,context.current_room,iter.first,opt_edit);
-								ops::editRoomTitle(am,opt_edit.dst,opt_edit.option_text);
+								ops::editRoomTitle(am,opt_edit.dst,opt_edit.option_text.c_str());
 								context.current_room=opt_edit.dst;
 								mode=EDIT_ROOM;
 									break;

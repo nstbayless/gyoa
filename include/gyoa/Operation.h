@@ -33,22 +33,28 @@ extern "C" {
 	void editStartRoom(model::ActiveModel*,rm_id_t first_room);
 
 	//! edit title of room
-	void editRoomTitle(model::ActiveModel*,rm_id_t, std::string title);
+	void editRoomTitle(model::ActiveModel*,rm_id_t, const char* title);
 
 	//! edit body of room
-	void editRoomBody(model::ActiveModel*,rm_id_t, std::string body);
+	void editRoomBody(model::ActiveModel*,rm_id_t, const char* body);
 
 	//! edit dead-end state of room.
 	void editRoomDeadEnd(model::ActiveModel*,rm_id_t, bool dead_end);
 
 	//! add option to room
-	void addOption(model::ActiveModel*,rm_id_t, model::option_t);
+	opt_id_t addOption(model::ActiveModel*,rm_id_t, const char* text, rm_id_t dst);
 
 	//! remove option from room
 	void removeOption(model::ActiveModel*,rm_id_t, opt_id_t);
 
 	//! edit room option
 	void editOption(model::ActiveModel*,rm_id_t, opt_id_t, model::option_t replace);
+
+	//! edits option description
+	void editOptionDescription(model::ActiveModel*,rm_id_t,opt_id_t, const char* newdescription);
+
+	//! edits option destination
+	void editOptionDestination(model::ActiveModel*,rm_id_t,opt_id_t, rm_id_t newdestination);
 
 	//! saves room to file. Returns name of file saved to.
 	std::string saveRoom(model::ActiveModel*,rm_id_t);
@@ -59,11 +65,15 @@ extern "C" {
 	//! saves all edited rooms and world.txt if applicable.
 	//! returns a string describing save result in human-readable form
 	//! if full is true, saves everything regardless of edit flag.
-	std::string saveAll(model::ActiveModel*,bool full=false);
+	const char* saveAll(model::ActiveModel*,bool full);
 
 	//! returns true if model information has been edited since last save
 	bool savePending(model::ActiveModel*);
 }
+
+//! saves all edited rooms and world.txt if applicable.
+//! returns a string describing save result in human-readable form
+std::string saveAll(model::ActiveModel*);
 
 } /* namespace ops */
 } /* namespace gyoa */

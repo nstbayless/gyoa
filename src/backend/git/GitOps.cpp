@@ -101,27 +101,27 @@ bool isRepo(gyoa::model::ActiveModel* am) {
 				GIT_REPOSITORY_OPEN_NO_SEARCH, nullptr);
 }
 
-void open(gyoa::model::ActiveModel* am) {
+void openRepo(gyoa::model::ActiveModel* am) {
 	assert(am);
 	std::string repo_dir = am->path;
-	git_repository* repo = am->repo;
+	git_repository*& repo = am->repo;
 	if (git_repository_open_ext(&repo, repo_dir.c_str(),
 			GIT_REPOSITORY_OPEN_NO_SEARCH, nullptr))
 		throw GitNotRepo(repo_dir);
 }
 
-void init(gyoa::model::ActiveModel* am) {
+void initRepo(gyoa::model::ActiveModel* am) {
 	assert(am);
 	std::string repo_dir = am->path;
 	if (git_repository_init(&am->repo, repo_dir.c_str(), false))
 		throw GitInitFail(repo_dir);
 }
 
-void gitInit() {
+void libgitInit() {
 	git_libgit2_init();
 }
 
-void gitShutdown() {
+void libgitShutdown() {
 	git_libgit2_shutdown();
 }
 
@@ -133,7 +133,7 @@ void obliterate(gyoa::model::ActiveModel* am) {
 }
 
 
-void clone(gyoa::model::ActiveModel* am,context::context_t& context) {
+void cloneRepo(gyoa::model::ActiveModel* am,context::context_t& context) {
 	assert(am);
 	std::string repo_dir = am->path;
 	git_repository* repo = am->repo;
@@ -141,51 +141,54 @@ void clone(gyoa::model::ActiveModel* am,context::context_t& context) {
 		throw GitCloneFail(repo_dir,context.upstream_url);
 }
 
-
-void stageAndCommit(gyoa::model::ActiveModel* am,context::context_t& context,std::string message) {
-	assert(message.length());
+void stageAndCommit(gyoa::model::ActiveModel* am, const char* username,
+		const char* email, const char* message) {
+	assert(strlen(message));
 	assert(am);
+	assert(am->repo);
 	std::string repo_dir = am->path;
 	git_repository* repo = am->repo;
-	git_signature* sig=nullptr;
-	git_signature_now(&sig, context.user_name.c_str(), context.user_email.c_str());
+	git_signature* sig = nullptr;
+	git_signature_now(&sig, username,
+			email);
 
-	int parent_count=0;
+	int parent_count = 0;
 	git_commit* head = getHead(am);
 
-	const git_commit* parents[] = {nullptr};
+	const git_commit* parents[] = { nullptr };
 
 	if (head)
-		parents[parent_count++]=head;
+		parents[parent_count++] = head;
 
-	std::vector<std::string> paths=FileIO::getAllFiles(repo_dir,
-			[](std::string filename)->bool{
+	std::vector<std::string> paths = FileIO::getAllFiles(repo_dir,
+			[](std::string filename)->bool {
 				if (!filename.compare("context.txt"))
-					return false;
+				return false;
 				return true;
 			});
 
-	git_tree* tree = setStaged(am,paths);
+	git_tree* tree = setStaged(am, paths);
 
 	git_oid oid_for_commit;
 
-	git_commit_create(
-	  &oid_for_commit,
-	  repo,
-	  "HEAD",						/* name of ref to update */
-	  sig,							/* author */
-	  sig,							/* committer */
-	  "UTF-8",						/* message encoding */
-	  message.c_str(),				/* message */
-	  tree,							/* root tree to commit*/
-	  parent_count,					/* parent count */
-	  parents);						/* parents */
+	git_commit_create(&oid_for_commit, repo, "HEAD", /* name of ref to update */
+	sig, /* author */
+	sig, /* committer */
+	"UTF-8", /* message encoding */
+	message, /* message */
+	tree, /* root tree to commit*/
+	parent_count, /* parent count */
+	parents); /* parents */
 
 	git_tree_free(tree);
 
 	if (head)
 		git_commit_free(head);
 	git_signature_free(sig);
+}
+
+void stageAndCommit(gyoa::model::ActiveModel* am,context::context_t& context,const char* message) {
+	stageAndCommit(am,context.user_name.c_str(),context.user_email.c_str(),message);
 }
 
 std::string gitError() {
@@ -283,7 +286,7 @@ bool fetch_direct(gyoa::model::ActiveModel* am,context::context_t& context,push_
 	return to_return;
 }
 
-bool fetch(gyoa::model::ActiveModel* am,context::context_t& context,push_cred credentials,int maxtries,
+bool fetchRepo(gyoa::model::ActiveModel* am,context::context_t& context,push_cred credentials,int maxtries,
 		bool (*push_kill_callback)(void*),void completed_callback(bool success,void*),void* varg) {
 	//set to zero if t_helper returns, 1 if t_kill returns
 	bool completed=false;
@@ -311,12 +314,12 @@ bool fetch(gyoa::model::ActiveModel* am,context::context_t& context,push_cred cr
 	return returnval[0];
 }
 
-bool fetch(gyoa::model::ActiveModel* am,context::context_t& context,int maxtries,
+bool fetchRepo(gyoa::model::ActiveModel* am,context::context_t& context,int maxtries,
 		bool (*push_kill_callback)(void*),
 		void completed_callback(bool success,void*),void* varg) {
 	assert(am);
 	push_cred credentials=make_push_cred_username("");
-	return fetch(am,context,credentials,maxtries,push_kill_callback,completed_callback,varg);
+	return fetchRepo(am,context,credentials,maxtries,push_kill_callback,completed_callback,varg);
 }
 
 bool push_direct(gyoa::model::ActiveModel* am,context::context_t& context,push_cred credentials,bool* kill, int tries){
