@@ -17,3 +17,9 @@ The [rapidxml](http://rapidxml.sourceforge.net/) library is used for storing dat
 cd debug
 make
 ```
+
+## Setting up with Eclipse CDT
+
+- use c++11 dialect
+- include folders: `./include`, `./rapidxml`
+- include libraries: `boost_system`, `boost_filesystem`, `git2`
